@@ -56,7 +56,7 @@ library(eeptools)
 library(svDialogs)
 ```
 
-```{r}
+```{r input variables}
 #configure input variables
     path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211028_marketing/Essential")
     users_file <- file.path(path,"users.csv")
@@ -65,12 +65,167 @@ library(svDialogs)
     prescriptions_file <- file.path(path,"prescriptions.csv")
 
 #import source files
-setwd(path)
-user_data <- read.csv(users_file, sep=";")
-profile <- read.csv(profiles_file, sep=";")
-measurments <- read.csv(measurements_file, sep=",")
-prescriptions <- read.csv(prescriptions_file, sep=",")
+    setwd(path)
+    user_data <- read.csv(users_file, sep=";")
+    profile <- read.csv(profiles_file, sep=";")
+    measurments <- read.csv(measurements_file, sep=",")
+    prescriptions <- read.csv(prescriptions_file, sep=",")
+
+#import source files
+expected_measurements_per_day <- 2
 ```
+
+```{r cleanup users that are not eligible}
+#DELETE USERS FROM THE FRAME?
+delete_users<- c("5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846")
+user_data = filter(user_data, !(id %in% delete_users))
+profile = filter(profile, !(id %in% delete_users))
+measurments = filter(measurments, !(userIds.0 %in% delete_users))
+prescriptions = filter(prescriptions, !(user_id %in% delete_users))
+```
+
+
+```{r Population metrics}
+# NUMBER OF PARTICIPANTS
+number_of_participants <- nrow(user_data)
+
+#CONVERT BIRTHDAY TO DATE
+profile$birthday <-as.Date(profile$birthday,format = "%Y-%m-%d")
+
+# AVERAGE AGE
+average_age <-
+    profile %>%
+    select(gender, birthday) %>%
+    mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days')/365))%>%
+    group_by(gender)%>%
+    summarise(avg_age = mean(age))%>%
+    filter(between(gender, 1, 4))%>%
+    ungroup()%>%
+    summarise(round(mean(avg_age)))%>%.[[1]]
+average_age <- glue::glue('{average_age} years')
+
+
+# PERCENTAGE MEN
+percentage_men <- scales::percent(sum(profile$gender == 1) / number_of_participants)
+
+# TOTAL NUMBER OF MEASUREMENTS 
+total_number_of_measurements <- nrow(measurments)
+
+# MEDIAN NUMBER OF MEASUREMENTS / PARTICIPANT 
+median_number_of_measurements_per_participant <-
+    measurments %>% 
+    group_by(userIds.0)%>%
+    summarise(freq=n_distinct(id)) %>% 
+    ungroup() %>% 
+    summarise(round(median(freq),0)) %>% .[[1]]
+
+# Measurement freauency calculation
+frequency_of_measurements <-
+    measurments %>% 
+    group_by(userIds.0) %>%     
+    summarise(freq=n_distinct(id))
+
+frequency_of_measurements_freq<- as.factor(frequency_of_measurements$freq) 
+freq <-as.data.frame(table(frequency_of_measurements_freq))
+p55 <- 
+    highchart() %>% 
+    hc_title(text = "Measurement distribution") %>% 
+    hc_chart(type = "column") %>% 
+    hc_xAxis(categories = freq$frequency_of_measurements_freq, title = list("test")) %>%
+    hc_add_series(data = freq$Freq, color='#8BD8DB', name='Age groups') %>%
+    hc_tooltip(pointFormat = "{point.y}%",crosshairs = TRUE, shared = TRUE) %>% 
+    hc_legend(enabled = T) %>% 
+    hc_size(width = 400,height = 300)
+
+
+# AVERAGE NUMBER OF PARTICIPANT 
+avg_number_of_measurements_per_participant <-
+    measurments %>% 
+    group_by(userIds.0) %>% 
+    summarise(freq=n_distinct(id)) %>% 
+    ungroup() %>% 
+    summarise(round(mean(freq),0)) %>% .[[1]]
+
+# TABULATE FINDINGS PER ARRHYTHMIA ON MEASUREMENT LEVEL
+arrhythmia_table <-
+      measurments %>% 
+    group_by(data.diagnosis.label.0) %>%     
+    summarise(freq=n_distinct(id)) %>%
+    mutate(fraction=round((freq/sum(freq))*100,1))%>%
+    arrange(-freq)
+names(arrhythmia_table)[names(arrhythmia_table) == "data.diagnosis.label.0"] <- "Heart rhythm"
+names(arrhythmia_table)[names(arrhythmia_table) == "freq"] <- "Frequency"
+names(arrhythmia_table)[names(arrhythmia_table) == "fraction"] <- "%"
+
+   
+# TABULATE MEASUREMENT ATTEMPTS PER USER AND MEASUREMENT
+  meas_attempt_user <-
+  measurments %>%
+  group_by(userIds.0, data.attempts) %>%
+  #summarise(mean=mean(data.attempts))%>%
+  #summarise(sd=sd(data.attempts, na.rm=TRUE))
+  summarise(freq=n_distinct(id))
+
+names(meas_attempt_user)[names(meas_attempt_user) == "data.attempts"] <- "Measurement attempts"
+names(meas_attempt_user)[names(meas_attempt_user) == "freq"] <- "Frequency"    
+
+
+# PEOPLE WITHOUT ATRIAL FIBRILLATION (AF)
+people_no_disorders <-
+     measurments %>% 
+        filter(data.diagnosis.label.0 %in% c('sinus','increased_hrv')) %>% 
+        summarise(n_distinct(userIds.0)) %>% .[[1]] 
+people_no_disorders <- (people_no_disorders/number_of_participants)*100
+
+
+# PEOPLE WITH ATRIAL FIBRILLATION (AF)
+people_with_atrial_fibrillation <-
+    measurments %>% 
+        filter(data.diagnosis.label.0 %in% c('atrial_fibrillation','atrial_flutter')) %>% 
+        summarise(n_distinct(userIds.0)) %>% .[[1]]
+
+people_with_atrial_fibrillation_pct <- (people_with_atrial_fibrillation/number_of_participants)*100
+
+# PEOPLE WITH OTHER CARDIAC ARRHYTHMIAS    
+people_with_other_cardiac_arrhythmias <- 
+    measurments %>% 
+        filter(data.indicator %in% c('warning')) %>% 
+        summarise(n_distinct(userIds.0)) %>% .[[1]]
+people_with_other_cardiac_arrhythmias_pct <- (people_with_other_cardiac_arrhythmias/number_of_participants)*100
+
+#Range of people with disorders
+
+people_with_atrial_fibrillation <-
+    measurments %>% 
+    filter(data.diagnosis.label.0 %in% c('atrial_fibrillation','atrial_flutter')) %>% 
+  summarise(n_distinct(userIds.0)) %>% .[[1]]
+
+  arrhythmia_per_user <- cast(measurments, userIds.0 ~ data.diagnosis.label.0)
+  
+
+# TOTAL NUMBER OF HEARTBEATS REGISTERED
+total_number_of_heartbeats_registered <- sum(measurments$data.heartrate, na.rm=TRUE)
+
+rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participants)} subjects')
+      ,`Average age` = average_age
+      ,`Percentage men` = percentage_men
+      ,`Total number of measurements` = scales::comma(total_number_of_measurements)
+      ,`Median number of measurements / participant` = median_number_of_measurements_per_participant
+      ,`Average number of measurements / participant` = avg_number_of_measurements_per_participant
+      ,`People with atrial fibrillation (AF)` = glue::glue('{people_with_atrial_fibrillation} ({round(people_with_atrial_fibrillation_pct,1)}%)') 
+      ,`People with other cardiac arrhythmia's` = glue::glue('{people_with_other_cardiac_arrhythmias} ({round(people_with_other_cardiac_arrhythmias_pct,1)}%)') 
+      ,`Total number of heartbeats registered` =  scales::comma(total_number_of_heartbeats_registered)) %>% 
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14
+    ) 
+
+
+```
+
+
 
 
 ## R Markdown
