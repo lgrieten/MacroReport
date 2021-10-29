@@ -56,7 +56,7 @@ library(eeptools)
 library(svDialogs)
 ```
 
-```{r input variables}
+```{r input variables, echo=FALSE}
 #configure input variables
     path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211028_marketing/Essential")
     users_file <- file.path(path,"users.csv")
@@ -75,7 +75,7 @@ library(svDialogs)
 expected_measurements_per_day <- 2
 ```
 
-```{r cleanup users that are not eligible}
+```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
 delete_users<- c("5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846")
 user_data = filter(user_data, !(id %in% delete_users))
@@ -85,7 +85,7 @@ prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 ```
 
 
-```{r Population metrics}
+```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
 number_of_participants <- nrow(user_data)
 
@@ -224,26 +224,72 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
 
 
 ```
+# Demography calculations
+## Gender distribution
+
+```{r demograpy calculations, echo=FALSE}
+plot_left_1_df <-
+    profile %>% 
+    mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
+           ,age = age / 365
+           ,gender=ifelse(gender==1,'male','female')) %>% 
+    group_by(gender) %>% 
+    summarise(cnt=n()
+              ,avg=mean(age)
+              ,oldest=max(age)
+              )
 
 
+ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +  theme_void() 
 
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+rbind(`Percentage men:` = percentage_men
+      ,`Avg age man:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
+      ,`Avg age women:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['avg']],1)
+      ,`Oldest male participant:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['oldest']],1)
+      ,`Oldest female participant:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['oldest']],1)
+      ) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
 ```
 
-## Including Plots
+## Age distribution
 
-You can also embed plots, for example:
+```{r echo=FALSE}
+plot_right_1_df <-
+    profile %>% 
+    mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
+           ,age = age / 365
+           ,age = ifelse(age<20,'<20'
+                 ,ifelse(age<30,'20-30'
+                 ,ifelse(age<40,'30-40'
+                 ,ifelse(age<50,'40-50'
+                 ,ifelse(age<60,'50-60'
+                 ,ifelse(age<70,'60-70','70-80'))))))) %>% 
+    group_by(age) %>% 
+    summarise(cnt=n()) %>% 
+    ungroup %>% 
+    mutate(cnt_=round(cnt/sum(cnt)*100,1)
+           ,cnt__=round(cnt/sum(cnt),2)
+           )
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")
+
+rbind(`Total number of participants:` = number_of_participants
+      ,`Average age:` = average_age
+      ,`Participants >40 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('40-50','50-60','60-70','70-80')]))
+      ,`Participants >60 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('60-70','70-80')])
+      )) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
