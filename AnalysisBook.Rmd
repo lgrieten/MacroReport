@@ -1,0 +1,94 @@
+---
+title: "Measurement analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+
+if(!require(prettydoc)) install.packages('prettydoc')
+if(!require(readxl)) install.packages('readxl')
+if(!require(knitr)) install.packages('knitr')
+if(!require(kableExtra)) install.packages('kableExtra')
+if(!require(ggplot2)) install.packages('ggplot2')
+if(!require(glue)) install.packages('glue')
+if(!require(scales)) install.packages('scales')
+if(!require(lubridate)) install.packages('lubridate')
+if(!require(highcharter)) install.packages('highcharter')
+if(!require(knitr)) install.packages('knitr')
+if(!require(data.table)) install.packages('data.table')
+if(!require(plyr)) install.packages('plyr')
+if(!require(dplyr)) install.packages('dplyr')
+if(!require(formattable)) install.packages('formattable')
+if(!require(tidyr)) install.packages('tidyr')
+if(!require(rmarkdown)) install.packages('rmarkdown')
+if(!require(DT)) install.packages('DT')
+if(!require(eeptools)) install.packages('eeptools')
+if(!require(varhandle)) install.packages('varhandle')
+if(!require(tidyverse)) install.packages('tidyverse')
+if(!require(reshape)) install.packages('reshape')
+if(!require(scales)) install.packages('scales')
+if(!require(svDialogs)) install.packages('svDialogs')
+
+
+library(scales)
+library(reshape)
+library(tidyverse)
+library(varhandle)
+library(prettydoc)
+library(readxl)
+library(knitr)
+library(kableExtra)
+library(ggplot2)
+library(glue)
+library(scales)
+library(lubridate)
+library(highcharter)
+library(rmarkdown)
+library(formattable)
+library(tidyr)
+library(dplyr)
+library(data.table)
+library(tidyverse)
+library(DT)
+library(eeptools)
+library(svDialogs)
+```
+
+```{r}
+#configure input variables
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211028_marketing/Essential")
+    users_file <- file.path(path,"users.csv")
+    profiles_file<- file.path(path,"profiles.csv")
+    measurements_file<- file.path(path,"measurements.csv")
+    prescriptions_file <- file.path(path,"prescriptions.csv")
+
+#import source files
+setwd(path)
+user_data <- read.csv(users_file, sep=";")
+profile <- read.csv(profiles_file, sep=";")
+measurments <- read.csv(measurements_file, sep=",")
+prescriptions <- read.csv(prescriptions_file, sep=",")
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
