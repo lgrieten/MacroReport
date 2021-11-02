@@ -73,6 +73,9 @@ library(svDialogs)
 
 #import source files
 expected_measurements_per_day <- 2
+
+#inner join files
+meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 ```
 
 ```{r cleanup users that are not eligible, echo=FALSE}
@@ -291,5 +294,81 @@ rbind(`Total number of participants:` = number_of_participants
         full_width = F,
         font_size = 14)
 
+```
+## Country distribution
+
+```{r Country Analysis, echo=FALSE}
+plot_country_total <-
+  profile %>% 
+  group_by(country) %>%
+  summarise(freq=n_distinct(id))%>%
+  mutate(cnt_=(freq/sum(freq)), cnt__=round(cnt_*100,1))
+  names(plot_country_total)[names(plot_country_total) == "cnt__"] <- "Percentage" 
+  plot_country <- plot_country_total[ c("country", "Percentage")]
+  
+  ggplot(plot_country_total, aes(x="", y=freq, fill=country)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +  theme_void() 
+  
+most_popular_country <- as.vector(plot_country_total%>% 
+        arrange(-cnt_) %>%
+        head(1) %>%
+        .[[1]])
+    
+tot_countries <- nrow(plot_country_total)
+
+
+rbind(`Country with most users:`= most_popular_country,`Total countries:` = tot_countries )%>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+```
+## Phone distribution
+
+```{r Phone analysis, echo=FALSE}
+
+plot_right_2_df <-     
+        profile %>% 
+        select(fibricheck_info.device.manufacturer) %>% 
+        group_by(device=fibricheck_info.device.manufacturer) %>% 
+        summarise(cnt=n()) %>% 
+        ungroup %>% 
+        mutate(cnt_=round(cnt/sum(cnt)*100,1)
+               ,cnt__=round(cnt/sum(cnt),2)) %>% 
+        arrange(-cnt) %>% 
+        group_by(device) %>% 
+        summarise(cnt=sum(cnt)) %>% 
+        ungroup %>% 
+        mutate(cnt_=round(cnt/sum(cnt)*100,1)
+               ,cnt__=round(cnt/sum(cnt),2)) %>% 
+        arrange(-cnt)
+
+
+  ggplot(plot_right_2_df, aes(x="", y=cnt__, fill=device)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +  theme_void() 
+
+
+most_popular_device <- as.vector(plot_right_2_df%>% 
+        arrange(-cnt) %>%
+        head(1) %>%
+        .[[1]])
+
+perc_ios <- plot_right_2_df%>% 
+        filter(tolower(device)=='apple') %>% 
+        mutate(cnt__=scales::percent(cnt__)) %>% 
+        .[[4]]
+
+insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_measurements),2))
+
+rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, `Percentage insufficient quality:` = insufficient_quality)%>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
 ```
 
