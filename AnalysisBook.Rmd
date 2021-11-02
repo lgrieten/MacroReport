@@ -370,6 +370,6 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
-#
+#@!
 ```
 
