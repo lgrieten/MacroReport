@@ -362,7 +362,7 @@ perc_ios <- plot_right_2_df%>%
         mutate(cnt__=scales::percent(cnt__)) %>% 
         .[[4]]
 
-insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_measurements),2))
+insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_number_of_measurements),2))
 
 rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, `Percentage insufficient quality:` = insufficient_quality)%>%
     kable() %>%
@@ -370,6 +370,128 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
-#@!
 ```
+# Medical History
 
+
+```{r, message=FALSE, echo=FALSE}
+
+#list of people with AF
+list_user_id_AF <- 
+  measurments%>%
+  filter(data.diagnosis.label.0 == "atrial_fibrillation") %>%
+  group_by(userIds.0)%>%
+  summarise(n_distinct(userIds.0))%>%
+  select(userIds.0)%>%
+  as.vector()
+
+#MEDICAL HISTORY PROFILE total
+
+medical_history<-
+      profile[c("id","gender","birthday", "custom_fields.arrhythmias", "custom_fields.atrialFibrillationKnowledge", "custom_fields.arrhythmias", "custom_fields.heartFailure", "custom_fields.arteryDisease", "custom_fields.atrialFibrillation", "custom_fields.stroke", "custom_fields.hypertension", "custom_fields.diabetes", "custom_fields.bloodThinner")] %>%
+      mutate(age = round(age_calc(birthday, units = "years"))) 
+
+      data <- as.matrix(medical_history)
+      data[which(data == "false")] <- "0"
+      data[which(data == "true")] <- "1"
+      data <-as.data.frame(data)
+      
+      #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
+
+      data$custom_fields.atrialFibrillationKnowledge <-as.numeric(data$custom_fields.atrialFibrillationKnowledge)
+      data$custom_fields.heartFailure<-as.numeric(data$custom_fields.heartFailure)
+      data$custom_fields.arteryDisease<-as.numeric(data$custom_fields.arteryDisease)
+      data$custom_fields.atrialFibrillation<-as.numeric(data$custom_fields.atrialFibrillation)
+      data$custom_fields.stroke<-as.numeric(data$custom_fields.stroke)
+      data$custom_fields.hypertension<-as.numeric(data$custom_fields.hypertension)
+      data$custom_fields.diabetes<-as.numeric(data$custom_fields.diabetes)
+      data$custom_fields.bloodThinner <-as.numeric(data$custom_fields.bloodThinner)
+      data$age <-as.numeric(data$age)
+      data$gender <-as.numeric(data$gender)
+
+      blank_rows <- sum(rowSums(is.na(data))>2)
+      filled_in <-nrow(data)-blank_rows    
+      
+      
+      AF_knowledge <- sum(data$custom_fields.atrialFibrillationKnowledge, na.rm=TRUE)
+      HF <- sum(data$custom_fields.heartFailure, na.rm=TRUE)
+      AD <-sum(data$custom_fields.arteryDisease, na.rm=TRUE)
+      AF_history <-sum(data$custom_fields.atrialFibrillation, na.rm=TRUE)
+      stroke <- sum( data$custom_fields.stroke, na.rm=TRUE)
+      hypertension<- sum(data$custom_fields.hypertension, na.rm=TRUE)
+      diabetes<- sum(data$custom_fields.diabetes, na.rm=TRUE)
+      bloodthinner<- sum(data$custom_fields.bloodThinner, na.rm=TRUE)
+      blank_rows <- sum(rowSums(is.na(data))>2)
+      filled_in <-nrow(data)-blank_rows    
+      
+      History.df <- data.frame(AF_knowledge,HF,AD,AF_history,stroke,hypertension,diabetes,bloodthinner) 
+      
+# AF PATIENTS
+medical_history_af<-
+      profile[c("id","gender","birthday", "custom_fields.arrhythmias", "custom_fields.atrialFibrillationKnowledge", "custom_fields.arrhythmias", "custom_fields.heartFailure", "custom_fields.arteryDisease", "custom_fields.atrialFibrillation", "custom_fields.stroke", "custom_fields.hypertension", "custom_fields.diabetes", "custom_fields.bloodThinner")] %>%
+      mutate(age = round(age_calc(birthday, units = "years"))) 
+
+medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$userIds.0))
+
+      data_af <- as.matrix(medical_history_af_2)
+      data_af[which(data_af == "false")] <- "0"
+      data_af[which(data_af == "true")] <- "1"
+      data_af <-as.data.frame(data_af)
+      
+      #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
+
+      data_af$custom_fields.atrialFibrillationKnowledge <-as.numeric(data_af$custom_fields.atrialFibrillationKnowledge)
+      data_af$custom_fields.heartFailure<-as.numeric(data_af$custom_fields.heartFailure)
+      data_af$custom_fields.arteryDisease<-as.numeric(data_af$custom_fields.arteryDisease)
+      data_af$custom_fields.atrialFibrillation<-as.numeric(data_af$custom_fields.atrialFibrillation)
+      data_af$custom_fields.stroke<-as.numeric(data_af$custom_fields.stroke)
+      data_af$custom_fields.hypertension<-as.numeric(data_af$custom_fields.hypertension)
+      data_af$custom_fields.diabetes<-as.numeric(data_af$custom_fields.diabetes)
+      data_af$custom_fields.bloodThinner <-as.numeric(data_af$custom_fields.bloodThinner)
+      data_af$age <-as.numeric(data_af$age)
+      data_af$gender <-as.numeric(data_af$gender)
+
+      blank_rows_af <- sum(rowSums(is.na(data_af))>2)
+      filled_in <-nrow(data_af)-blank_rows_af    
+      
+      
+      AF_knowledge_af <- sum(data_af$custom_fields.atrialFibrillationKnowledge, na.rm=TRUE)
+      HF_af <- sum(data_af$custom_fields.heartFailure, na.rm=TRUE)
+      AD_af <-sum(data_af$custom_fields.arteryDisease, na.rm=TRUE)
+      AF_history_af <-sum(data_af$custom_fields.atrialFibrillation, na.rm=TRUE)
+      stroke_af <- sum( data_af$custom_fields.stroke, na.rm=TRUE)
+      hypertension_af<- sum(data_af$custom_fields.hypertension, na.rm=TRUE)
+      diabetes_af<- sum(data_af$custom_fields.diabetes, na.rm=TRUE)
+      bloodthinner_af<- sum(data_af$custom_fields.bloodThinner, na.rm=TRUE)
+      blank_rows_af <- sum(rowSums(is.na(data_af))>2)
+      filled_in_af <-nrow(data_af)-blank_rows_af    
+      
+      
+
+rbind(` Total` = paste("(",nrow(profile),")"),
+      ` History of Heart Failure` = HF,
+      ` History of Diabetes` = diabetes,
+      ` History of Artery Disease` = AD,
+      ` History of AF` = AF_history,
+      ` History of hypertension` = hypertension,
+      ` History of Stroke` = stroke,
+      `Already takes a bloodthinner` = bloodthinner,
+      `Amount of filled in questionnaires` = filled_in,
+      `Amount of blank questionnaires` = blank_rows,
+      ` AF patients` = paste("(",nrow(list_user_id_AF),")","/","(",nrow(profile),")"),
+      ` History of Heart Failure` = HF_af,
+      ` History of Diabetes` = diabetes,
+      ` History of Artery Disease` = AD_af,
+      ` History of AF` = AF_history_af,
+      ` History of hypertension` = hypertension_af,
+      ` History of Stroke` = stroke_af,
+      `Already takes a bloodthinner` = bloodthinner_af,
+      `Amount of filled in questionnaires` = filled_in_af,
+      `Amount of blank questionnaires` = blank_rows_af
+      ) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = T,
+        font_size = 14)
+```
