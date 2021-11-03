@@ -58,7 +58,9 @@ library(svDialogs)
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211028_marketing/Essential")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/BHRUT/Final analysis pilot")
+    #seperator for the CSV files, this can be ";" or "," 
+    ssep = ";"
     users_file <- file.path(path,"users.csv")
     profiles_file<- file.path(path,"profiles.csv")
     measurements_file<- file.path(path,"measurements.csv")
@@ -66,10 +68,10 @@ library(svDialogs)
 
 #import source files
     setwd(path)
-    user_data <- read.csv(users_file, sep=";")
-    profile <- read.csv(profiles_file, sep=";")
-    measurments <- read.csv(measurements_file, sep=",")
-    prescriptions <- read.csv(prescriptions_file, sep=",")
+    user_data <- read.csv(users_file, sep=ssep)
+    profile <- read.csv(profiles_file, sep=ssep)
+    measurments <- read.csv(measurements_file, sep=ssep)
+    prescriptions <- read.csv(prescriptions_file, sep=ssep)
 
 #import source files
 expected_measurements_per_day <- 2
@@ -80,7 +82,7 @@ meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
-delete_users<- c("5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846")
+delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846")
 user_data = filter(user_data, !(id %in% delete_users))
 profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
@@ -495,3 +497,194 @@ rbind(` Total` = paste("(",nrow(profile),")"),
         full_width = T,
         font_size = 14)
 ```
+
+```{r}
+plot_left_2_df <-     
+    prescriptions %>% 
+        select(paid_timestamp) %>% 
+          mutate(date=as.POSIXct((paid_timestamp/1000) ,origin = "1970-01-01 00:00:00:000")) %>% 
+        group_by(date=as.Date(date)) %>% 
+        summarise(cnt=n()) %>% 
+        ungroup %>% 
+        mutate(cnt_=round(cnt/sum(cnt)*100,1)
+              ,cnt__=round(cnt/sum(cnt),2))
+
+ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")
+
+```
+```{r}
+peck_hour <- 
+    prescriptions %>% 
+    select(paid_timestamp) %>% 
+    ## https://www.freeformatter.com/epoch-timestamp-to-date-converter.html
+    mutate(hour=hour(as.POSIXct((paid_timestamp/1000) ,origin = "1970-01-01 00:00:00:000"))) %>% 
+    group_by(hour) %>% 
+    summarise(cnt=n()) %>% 
+    arrange(-cnt) %>% head(1) %>% .[[1]]
+    
+rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange(-cnt) %>% head(1) %>% .[[1]],origin='1970-01-01'))
+      ,`Peak activation - Time (UTC):` = peck_hour
+      ) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = T,
+        font_size = 14)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+plot_left_3_df <- 
+    measurments %>% 
+    select(creationTimestamp) %>% 
+    mutate(date=as.Date(creationTimestamp)) %>% 
+    group_by(w=week(date)) %>% 
+    summarise(cnt=n()
+              ,min_date=min(date)
+              ,max_date=max(date)) %>% 
+    ungroup() %>% 
+    mutate(cnt_=round(cnt/sum(cnt)*100,1)
+           ,cnt__=round(cnt/sum(cnt),2)) %>% 
+    arrange(w) %>% 
+    mutate(min_date=paste(day(min_date),month(min_date),sep='/')
+           ,max_date=paste(day(max_date),month(max_date),sep='/')
+           ,wd=paste(min_date,max_date,sep='-'))
+
+ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30))    
+
+
+plot_right_3_df <- 
+    measurments %>% 
+    select(creationTimestamp) %>% 
+    mutate(hour=hour(ymd_hms(creationTimestamp))
+          ,hour_=ifelse(hour<2,'0-2 AM',
+                ifelse(hour<4,'2-4 AM',
+                ifelse(hour<6,'4-6 AM',
+                ifelse(hour<8,'6-8 AM',
+                ifelse(hour<10,'8-10 AM',
+                ifelse(hour<12,'10-12 AM',
+                ifelse(hour<14,'12-2 PM',
+                ifelse(hour<16,'2-4 PM',
+                ifelse(hour<18,'4-6 PM',
+                ifelse(hour<20,'6-8 PM',
+                ifelse(hour<22,'8-10 PM','10-12 PM')))))))))))) %>% 
+    group_by(hour_) %>% 
+    summarise(cnt=n(),min_hour=min(hour)) %>% 
+    arrange(min_hour) 
+
+ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") +
+  scale_x_discrete(limits=plot_right_3_df$hour_)
+```
+
+```{r, message=FALSE, echo=FALSE}
+max_measures_per_day <- 
+    measurments %>% 
+    select(creationTimestamp) %>% 
+    mutate(date=as.Date(creationTimestamp)) %>% 
+    group_by(date) %>% 
+    summarise(cnt=n()) %>% 
+    ungroup() %>% 
+    summarise(max(cnt)) %>% .[[1]]
+rbind(`Peak measurements (UTC): ` = plot_right_3_df %>% 
+        arrange(-cnt) %>% 
+        head(1) %>% 
+        .[[1]]
+      ,`Total number of measurements received:` = total_number_of_measurements
+      ,`Max number of tot. measurements / day:` = max_measures_per_day
+      ) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = T,
+        font_size = 14)
+```
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+
+compliance_plot <-
+  measurments %>%
+  group_by(userIds.0) %>%
+  summarise(freq=n_distinct(id))%>% 
+  mutate(cnt_=(freq/m_per_day/duration), cnt__=round(cnt_*100), compliance = ifelse(cnt__<10,'<10%'
+                                     ,ifelse(cnt__<20,'10%-20%'
+                                             ,ifelse(cnt__<30,'20%-30%'
+                                                     ,ifelse(cnt__<40,'30%-40%'
+                                                             ,ifelse(cnt__<50,'40%-50%'
+                                                                      ,ifelse(cnt__<60,'50%-60%'
+                                                                               ,ifelse(cnt__<70,'60%-70%'
+                                                                                        ,ifelse(cnt__<80,'70%-80%'
+                                                                                                 ,ifelse(cnt__<90,'80%-90%'
+                                                                                                          ,ifelse(cnt__<100,'90%-100%'
+                                                                                                                   ,ifelse(cnt__<150,'b 100% -150%'
+                                                                                                                           ,ifelse(cnt__<200,'b 150%-200%'
+                                                                                                                                   ,ifelse(cnt__>200,'more then 200%',"/"))))))))))))))                                                                                                                                                        
+
+compliance_plot_total<-
+    compliance_plot %>%
+    group_by(compliance) %>%
+    summarise(cnt=n())
+ 
+p <- 
+    highchart() %>% 
+      hc_xAxis(categories = compliance_plot_total$compliance) %>%
+   # hc_yAxis_multiples(
+    #    list(lineWidth = 3),
+     #   list(showLastLabel = FALSE, opposite = T)) %>%
+    hc_title(text = "Average amount of measurements") %>% 
+    hc_add_series(data = compliance_plot_total$cnt,type="column",color='#8BD8DB',name='Avg num of measurements') %>% 
+    #hc_add_series(data = plot_right_4_df$cnt_, type = "spline", yAxis = 1,name='% participants',color='lightgray') %>% 
+    hc_tooltip(crosshairs = TRUE) %>%
+    hc_legend(enabled = F) %>% 
+    hc_size(width = 400,height = 350)
+
+
+
+
+plot_right_4_df_a <-
+    profile %>% 
+    mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
+           ,age = age / 365
+           ,age = ifelse(age<20,'<20'
+                         ,ifelse(age<30,'20-30'
+                                 ,ifelse(age<40,'30-40'
+                                         ,ifelse(age<50,'40-50'
+                                                 ,ifelse(age<60,'50-60'
+                                                         ,ifelse(age<70,'60-70','70-80'))))))) %>% 
+    group_by(age) %>% 
+    summarise(cnt=n()) %>%
+    ungroup %>% 
+    mutate(cnt_=round(cnt/sum(cnt)*100,1)
+           ,cnt__=round(cnt/sum(cnt),1)
+    )
+
+
+plot_right_4_df_b <-
+    inner_join(measurments,profile,by = c('creatorId'='id')) %>% 
+    select(birthday,id,creatorId) %>% 
+    mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
+           ,age = age / 365
+           ,age = ifelse(age<20,'<20'
+                         ,ifelse(age<30,'20-30'
+                                 ,ifelse(age<40,'30-40'
+                                         ,ifelse(age<50,'40-50'
+                                                 ,ifelse(age<60,'50-60'
+                                                         ,ifelse(age<70,'60-70','70-80'))))))) %>% 
+    group_by(age) %>% 
+    summarise(per_user_cnt=round(n()/n_distinct(creatorId))) 
+
+plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
+
+p1 <- 
+    highchart() %>% 
+      hc_xAxis(categories = plot_right_1_df$age) %>%
+    #hc_yAxis_multiples(
+     #   list(lineWidth = 3),
+     #   list(showLastLabel = FALSE, opposite = T)) %>%
+    hc_title(text = "Average Number of Measurements per Age") %>% 
+    hc_add_series(data = plot_right_4_df$per_user_cnt,type="column",color='#8BD8DB',name='Avg num of measurements') %>% 
+    #hc_add_series(data = plot_right_4_df$cnt_, type = "spline", yAxis = 1,name='% participants',color='lightgray') %>% 
+    hc_tooltip(crosshairs = TRUE) %>%
+    hc_legend(enabled = F) %>% 
+    hc_size(width = 400,height = 300)
