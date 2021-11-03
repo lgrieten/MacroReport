@@ -54,6 +54,7 @@ library(tidyverse)
 library(DT)
 library(eeptools)
 library(svDialogs)
+library(knitr)
 ```
 
 ```{r input variables, echo=FALSE}
@@ -74,7 +75,9 @@ library(svDialogs)
     prescriptions <- read.csv(prescriptions_file, sep=ssep)
 
 #import source files
-expected_measurements_per_day <- 2
+m_per_day <- 2
+duration <- 7
+
 
 #inner join files
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
@@ -482,7 +485,7 @@ rbind(` Total` = paste("(",nrow(profile),")"),
       `Amount of blank questionnaires` = blank_rows,
       ` AF patients` = paste("(",nrow(list_user_id_AF),")","/","(",nrow(profile),")"),
       ` History of Heart Failure` = HF_af,
-      ` History of Diabetes` = diabetes,
+      ` History of Diabetes` = diabetes_af,
       ` History of Artery Disease` = AD_af,
       ` History of AF` = AF_history_af,
       ` History of hypertension` = hypertension_af,
@@ -626,20 +629,8 @@ compliance_plot_total<-
     group_by(compliance) %>%
     summarise(cnt=n())
  
-p <- 
-    highchart() %>% 
-      hc_xAxis(categories = compliance_plot_total$compliance) %>%
-   # hc_yAxis_multiples(
-    #    list(lineWidth = 3),
-     #   list(showLastLabel = FALSE, opposite = T)) %>%
-    hc_title(text = "Average amount of measurements") %>% 
-    hc_add_series(data = compliance_plot_total$cnt,type="column",color='#8BD8DB',name='Avg num of measurements') %>% 
-    #hc_add_series(data = plot_right_4_df$cnt_, type = "spline", yAxis = 1,name='% participants',color='lightgray') %>% 
-    hc_tooltip(crosshairs = TRUE) %>%
-    hc_legend(enabled = F) %>% 
-    hc_size(width = 400,height = 350)
-
-
+ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30))    
 
 
 plot_right_4_df_a <-
@@ -676,15 +667,382 @@ plot_right_4_df_b <-
 
 plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
-p1 <- 
-    highchart() %>% 
-      hc_xAxis(categories = plot_right_1_df$age) %>%
-    #hc_yAxis_multiples(
-     #   list(lineWidth = 3),
-     #   list(showLastLabel = FALSE, opposite = T)) %>%
-    hc_title(text = "Average Number of Measurements per Age") %>% 
-    hc_add_series(data = plot_right_4_df$per_user_cnt,type="column",color='#8BD8DB',name='Avg num of measurements') %>% 
-    #hc_add_series(data = plot_right_4_df$cnt_, type = "spline", yAxis = 1,name='% participants',color='lightgray') %>% 
-    hc_tooltip(crosshairs = TRUE) %>%
-    hc_legend(enabled = F) %>% 
-    hc_size(width = 400,height = 300)
+
+ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")
+```
+  
+```{r, message=FALSE, echo=FALSE}
+max_compliance <- as.vector(compliance_plot%>% 
+        arrange(-cnt_) %>%
+        head(1) %>%
+        .[[4]])
+
+avg_per_user <- 
+    measurments %>% 
+    select(userIds.0) %>% 
+    group_by(userIds.0) %>% 
+    summarise(cnt=n()) %>% 
+    ungroup() %>% 
+    summarise(round(mean(cnt))) %>% .[[1]]
+
+rbind(`Most compliant user (%):` = paste (as.character(max_compliance),"%", sep = "", collapse = NULL)
+      ,`Average number of measurements/user:` = avg_per_user
+      ,`Average compliance (%):` =  paste (as.character(round(mean(compliance_plot$cnt__))),"%", sep = "", collapse = NULL)) %>% 
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = T,
+        font_size = 14)
+```
+
+# Diagnostics
+
+```{r, message=FALSE, echo=FALSE}
+
+most_common <- as.character(
+    measurments %>% 
+    select(data.context.symptoms.0) %>% 
+    group_by(type=data.context.symptoms.0) %>% 
+    summarise(cnt=n()) %>% 
+   filter(type != "no_symptoms") %>%  
+   filter(type != "") %>% 
+    ungroup() %>% 
+    arrange(-cnt) %>% 
+  head(1)%>% .[[1]])
+
+measurement_without_symptoms <- as.numeric( measurments %>% 
+    select(data.context.symptoms.0) %>% 
+    group_by(type=data.context.symptoms.0) %>% 
+    summarise(cnt=n()) %>% 
+    filter(type == "no_symptoms") %>% 
+    head(1)%>% .[[2]])
+
+Total_measurements_with_symptoms <- as.numeric(total_number_of_measurements)-measurement_without_symptoms
+
+total_af_measurements <- as.numeric(
+    measurments %>% 
+    select(data.context.symptoms.0, data.diagnosis.label.0) %>% 
+   filter(data.diagnosis.label.0 == "atrial_fibrillation") %>%
+  summarise(cnt=n()) %>%
+   ungroup() %>% 
+  head(1)%>% .[[1]])
+  
+  
+af_measurements_nosymptoms <- as.numeric(
+    measurments %>% 
+    select(data.context.symptoms.0, data.diagnosis.label.0) %>% 
+   filter(data.diagnosis.label.0 == "atrial_fibrillation") %>%
+  group_by(type=data.context.symptoms.0) %>% 
+      summarise(cnt=n()) %>%
+      filter(type == "no_symptoms") %>% 
+    ungroup() %>% 
+  head(1)%>% .[[2]])
+
+hr_AF <- 
+    measurments %>% 
+    filter(data.diagnosis.label.0== "atrial_fibrillation")
+mean_HR_AF = round(mean(hr_AF$data.heartrate))
+
+hr_non_AF <- 
+    measurments %>% 
+    filter(data.diagnosis.label.0 != "atrial_fibrillation")
+mean_HR_non_AF = round(mean(hr_non_AF$data.heartrate))
+  
+
+
+
+rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrillation, `Amount of people with other cardiac arrhythmia's:` = people_with_other_cardiac_arrhythmias, `Average heart rate of non-AF people (bpm):` = mean_HR_non_AF
+      ,`Average heart rate during AF (bpm):` = mean_HR_AF,`Measurements with symptoms (%):` = scales::percent(Total_measurements_with_symptoms/as.numeric(total_number_of_measurements))
+      ,`AF-measurements with symptoms:` = total_af_measurements - af_measurements_nosymptoms
+      ,`Most common symptom:` = most_common
+      ) %>%
+    kable() %>%
+   kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = TRUE,
+        font_size = 14)
+
+
+hr_AF <- 
+  measurments %>% 
+  filter(data.diagnosis.label.0== "atrial_fibrillation")
+
+mean_HR_AF = round(mean(hr_AF$data.heartrate))
+
+hr_non_AF <- 
+      measurments %>% 
+      filter(data.diagnosis.label.0 != "atrial_fibrillation")
+  mean_HR_non_AF = round(mean(hr_non_AF$data.heartrate))
+  
+ggplot(arrhythmia_table, aes(x="", y=Frequency, fill=`Heart rhythm`)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +  theme_void() 
+
+ kable(arrhythmia_table) %>%
+     kable_styling(
+          bootstrap_options = c("hover", "condensed", "responsive"),
+          full_width = FALSE,
+          position = "float_left",
+          font_size = 14)
+ 
+ symptom_table <-
+  measurments %>%
+  group_by(data.context.symptoms.0) %>%
+  summarise(freq = n_distinct(id)) %>%
+  arrange (-freq) %>% 
+  mutate(fraction=round((freq/sum(freq))*100,1))%>%
+mutate_all(na_if,"")
+
+  
+names(symptom_table)[names(symptom_table) == "data.context.symptoms.0"] <- "Symptoms"
+names(symptom_table)[names(symptom_table) == "freq"] <- "Frequency"
+names(symptom_table)[names(symptom_table) == "fraction"] <- "%"
+
+kable(symptom_table) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        position = "float_right",
+        font_size = 14)
+
+ 
+
+```
+
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
+
+plot_left_4_df <-
+   measurments %>% 
+    select(data.context.symptoms.0) %>% 
+    group_by(type=data.context.symptoms.0) %>% 
+    summarise(cnt=n()) %>% 
+    filter(!is.na(type)) %>% 
+    ungroup() %>% 
+    arrange(-cnt)
+
+ggplot(plot_left_4_df, aes(x="", y=cnt, fill=type)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +  theme_void() 
+
+
+```
+
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
+sinus_rhythm <- as.character(c("sinus","increased HRV"))
+measurments$data.context.symptoms.0 <- as.character(measurments$data.context.symptoms.0)
+measurments$id <- as.character(measurments$id)
+
+symptoms_table_sinus <-
+      measurments%>%
+      filter(data.diagnosis.label.0 %in% sinus_rhythm )%>%
+      group_by(data.context.symptoms.0)%>%
+      summarize(freq = n_distinct(id))%>%
+      arrange (-freq)%>%
+      mutate(fraction=round((freq/sum(freq))*100,1))%>%
+mutate_all(na_if,"")
+  
+
+names(symptoms_table_sinus)[names(symptoms_table_sinus) == "data.context.symptoms.0"] <- "Symptoms"
+names(symptoms_table_sinus)[names(symptoms_table_sinus) == "freq"] <- "Frequency"
+names(symptoms_table_sinus)[names(symptoms_table_sinus) == "fraction"] <- "%"
+
+kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms") %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+
+
+```
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
+non_AF <- c("extrasystoles_frequent","extrasystoles_isolated","tachycardia", "extrasystoles_big_episode","extrasystoles_trig_episode","extrasystoles_bigminy")
+symptoms_table_non_af <-
+      measurments %>%
+      filter(data.diagnosis.label.0 %in% non_AF)%>%
+      group_by(data.context.symptoms.0) %>%
+      summarise(freq = n_distinct(id)) %>% 
+      arrange (-freq) %>% 
+      mutate(fraction=round((freq/sum(freq))*100,1))%>%
+mutate_all(na_if,"")
+
+names(symptoms_table_non_af)[names(symptoms_table_non_af) == "data.context.symptoms.0"] <- "Symptoms"
+names(symptoms_table_non_af)[names(symptoms_table_non_af) == "freq"] <- "Frequency"
+names(symptoms_table_non_af)[names(symptoms_table_non_af) == "fraction"] <- "%"
+
+kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+
+```
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
+
+AF_rhythms<-c("atrial_fibrillation","atrial_flutter")
+symptoms_table_af <-
+      measurments %>%
+      filter(data.diagnosis.label.0 %in% AF_rhythms ) %>%
+      group_by(data.context.symptoms.0) %>%
+      summarise(freq = n_distinct(id)) %>%
+      arrange (-freq) %>%
+      mutate(fraction=round((freq/sum(freq))*100,1))%>%
+mutate_all(na_if,"")
+names(symptoms_table_af)[names(symptoms_table_af) == "data.context.symptoms.0"] <- "Symptoms"
+names(symptoms_table_af)[names(symptoms_table_af) == "freq"] <- "Frequency"
+names(symptoms_table_af)[names(symptoms_table_af) == "fraction"] <- "%"
+
+kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+```
+# Signal Quality Analysis
+
+```{r, message=FALSE, echo=FALSE}
+  #Percentage of insufficient quality
+percent_quality <-cast(measurments, userIds.0 ~ data.diagnosis.label.0)
+percent_quality <-as.matrix(percent_quality)
+percent_quality_2 <- as.data.frame(prop.table(percent_quality, 1)*100)
+
+percent_quality_2<- percent_quality_2 %>%
+select(userIds.0,quality_to_low)
+  
+total_percent_quality = glue::glue('{round(mean(percent_quality_2$quality_to_low),2)}%')
+minimum_amount_quality = glue::glue('{round(min(percent_quality_2$quality_to_low),2)}%')
+maximum_amount_quality = glue::glue('{round(max(percent_quality_2$quality_to_low),2)}%')
+rbind(`Average % of insufficient quality:` = total_percent_quality, `Minimum % of insufficient quality:` = minimum_amount_quality ,`Maximum % of insufficient quality:` = maximum_amount_quality  ) %>% 
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+```
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+
+# TABULATE MEASUREMENT ATTEMPTS PER USER AND MEASUREMENT
+meas_attempt_measurement <-
+  measurments %>%
+  group_by(data.attempts) %>%
+summarise(freq=n_distinct(id))%>%
+mutate(cnt_=(freq/sum(freq)), cnt__=round(cnt_*100,1))
+names(meas_attempt_measurement)[names(meas_attempt_measurement) == "data.attempts"] <- "Meas. attempts"
+names(meas_attempt_measurement)[names(meas_attempt_measurement) == "cnt__"] <- "Percentage (%)" 
+meas_attempt_measurement_subset <- meas_attempt_measurement[ c("Meas. attempts", "Percentage (%)")]
+
+
+kable(meas_attempt_measurement_subset) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+
+
+
+
+
+```
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
+
+# TABULATE MEASUREMENT QUALITY VS ACTIVITY
+
+percent_quality_activity <-as.data.frame(cast(measurments, data.context.activity  ~ data.diagnosis.label.0)  %>%
+  select(data.context.activity, quality_to_low)%>%
+  mutate_all(na_if,""))%>%
+  arrange(-quality_to_low)
+percent_quality_activity$quality_to_low <- round(percent_quality_activity$quality_to_low/sum(percent_quality_activity$quality_to_low)*100,1)
+
+names(percent_quality_activity)[names(percent_quality_activity) == "data.context.activity"] <- "Activity context" 
+names(percent_quality_activity)[names(percent_quality_activity) == "quality_to_low"] <- "Insufficient quality distribution (%)" 
+
+  
+kable(percent_quality_activity) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+```
+# Rhythm recordings
+
+```{r include=FALSE}
+UserID <- unique(user_data$id)
+
+unique(measurments$data.context.symptoms.0)
+table(measurments$data.context.symptoms.0)
+measurments$data.context.symptoms.0 = as.character(measurments$data.context.symptoms.0)
+for(i in 1:nrow(measurments))
+{
+  if(measurments$data.context.symptoms.0[i] == "no_symptoms")
+  {
+    measurments$data.context.symptoms.sym[i]= "0"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "palpitations")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "fatigue")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "shortness_of_breath")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "lightheaded")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "other")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "Confused")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "chest_pains")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else
+  {
+    measurments$data.context.symptoms.sym[i]="NA"
+  }
+}
+```
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+
+for(i in 1:length(UserID))
+{
+df_window = subset(measurments,userIds.0 == UserID[i])
+df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
+df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == "NA")|(df_window$data.context.symptoms.sym == "0"),"0", "200"))
+
+#df_window$data.measurement_timestamp=as.Date(as.POSIXct((df_window$data.measurement_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
+
+df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_timestamp/1000))   
+
+
+p1 <- ggplot(df_window) +
+          geom_point(aes(x=data.measurement_timestamp,
+                   y=data.heartrate, color=data.indicator)) +
+          scale_colour_manual(values = c("warning" = "orange", "urgent" = "red",
+                                   "normal" = "green","Quality" = "blue",
+                                   "Symptoms Was Present"="black")) + 
+          geom_point(aes(x=data.measurement_timestamp,
+                         y=symptoms)) +
+          xlab("Date/time") + ylab("Heart rate (BPM)") + ylim(30, 200)+ theme_minimal() +
+          labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window))) +
+          theme(legend.title =element_blank(),legend.position = "top")
+print(p1)  
+}
+```
+
+
+
