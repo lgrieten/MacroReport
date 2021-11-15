@@ -1016,6 +1016,8 @@ for(i in 1:nrow(measurments))
   }
 }
 ```
+
+
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 for(i in 1:length(UserID))
@@ -1023,6 +1025,28 @@ for(i in 1:length(UserID))
 df_window = subset(measurments,userIds.0 == UserID[i])
 df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
 df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == "NA")|(df_window$data.context.symptoms.sym == "0"),"0", "200"))
+
+#DF windown alculation for prescription durations
+  df_prescription = subset(prescriptions,user_id == UserID[i])
+  df_prescription$dur = df_prescription$duration/1000
+  #df_prescription$activated_timestamp2 = as.Date(as.POSIXct((df_prescription$update_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
+  
+  df_prescription$activated_timestamp2 = as_datetime((df_prescription$update_timestamp/1000)) 
+  df_prescription$end_date = df_prescription$activated_timestamp2 + df_prescription$dur
+  df_prescription$today = as.Date("2021-10-28")
+  total_prescription_days = sum(df_prescription$dur)
+  Total_days_in_last_block = as.numeric(as.Date("2021-10-28")-max(df_prescription$activated_timestamp2))
+  Total_days_last_block = as.numeric(max(df_prescription$end_date)-max(df_prescription$activated_timestamp2))
+  
+  actual_prescription_days <- 
+  if(max(df_prescription$end_date) >= as.Date("2021-10-28"))
+  {
+  actual_prescription_days=total_prescription_days - Total_days_last_block + Total_days_in_last_block
+  } else {
+   actual_prescription_days = total_prescription_days
+  }
+  
+
 
 #df_window$data.measurement_timestamp=as.Date(as.POSIXct((df_window$data.measurement_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
 
@@ -1032,14 +1056,23 @@ df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_
 p1 <- ggplot(df_window) +
           geom_point(aes(x=data.measurement_timestamp,
                    y=data.heartrate, color=data.indicator)) +
-          scale_colour_manual(values = c("warning" = "orange", "urgent" = "red",
-                                   "normal" = "green","Quality" = "blue",
+          scale_colour_manual(values = c("warning" = "#f09034", "urgent" = "#dc324a",
+                                   "normal" = "#6bacb2","Quality" = "blue",
                                    "Symptoms Was Present"="black")) + 
           geom_point(aes(x=data.measurement_timestamp,
                          y=symptoms)) +
           xlab("Date/time") + ylab("Heart rate (BPM)") + ylim(30, 200)+ theme_minimal() +
-          labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window))) +
-          theme(legend.title =element_blank(),legend.position = "top")
+          labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window), "i",i)) +
+          theme(legend.title =element_blank(),legend.position = "top", )
+
+ #### REPEAT PLOT####
+  rect <- data.frame(xmin=df_prescription$activated_timestamp2, xmax=df_prescription$end_date, ymin=-Inf, ymax=Inf)
+  p1 <- p1 + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
+              color="grey50",
+              alpha=0.1,
+              inherit.aes = FALSE) 
+  
+  
 print(p1)  
 }
 ```
