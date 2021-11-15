@@ -605,7 +605,7 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
 ```
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
-
+#in order to make the compliance plot accurate, we'll need to create a table with the data generated from the per-patient level and build an aggregate view of this. Based on this table the following plots can be genrated. 
 compliance_plot <-
   measurments %>%
   group_by(userIds.0) %>%
@@ -1046,11 +1046,17 @@ df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == 
    actual_prescription_days = total_prescription_days
   }
   
+df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_timestamp/1000))   
 
+first_measurement = min(df_window$data.measurement_timestamp)
+last_measurement = max(df_window$data.measurement_timestamp)
+Total_days = actual_prescription_days/60/60/24
+Total_days_motivation_met = sum(table(as.Date(df_window$data.measurement_timestamp))>=m_per_day)
+compliance = round(100*sum(nrow(df_window))/(Total_days),2)
+motivation= round(sum((table(as.Date(df_window$data.measurement_timestamp))>=m_per_day))*100/Total_days,2)
 
 #df_window$data.measurement_timestamp=as.Date(as.POSIXct((df_window$data.measurement_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
 
-df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_timestamp/1000))   
 
 
 p1 <- ggplot(df_window) +
@@ -1062,14 +1068,14 @@ p1 <- ggplot(df_window) +
           geom_point(aes(x=data.measurement_timestamp,
                          y=symptoms)) +
           xlab("Date/time") + ylab("Heart rate (BPM)") + ylim(30, 200)+ theme_minimal() +
-          labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window), "i",i)) +
+          labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window), "Compliance",compliance, "Motivation", motivation)) +
           theme(legend.title =element_blank(),legend.position = "top", )
 
  #### REPEAT PLOT####
   rect <- data.frame(xmin=df_prescription$activated_timestamp2, xmax=df_prescription$end_date, ymin=-Inf, ymax=Inf)
   p1 <- p1 + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
-              color="grey50",
-              alpha=0.1,
+              color="grey90",
+              alpha=0.05,
               inherit.aes = FALSE) 
   
   
