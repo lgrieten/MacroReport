@@ -647,7 +647,7 @@ plot_left_3_df <-
            ,wd=paste(min_date,max_date,sep='-'))
 
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements") + ggtitle("Amount of measurements on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
 plot_right_3_df <- 
     measurments %>% 
