@@ -259,7 +259,7 @@ plot_left_1_df <-
 
 ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
   geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +  theme_void() 
+  coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = cnt), position = position_stack(vjust = 0.5), color = "white", size=6)
 
 rbind(`Percentage men:` = percentage_men
       ,`Avg age man:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
