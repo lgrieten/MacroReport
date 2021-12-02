@@ -1232,7 +1232,6 @@ for(i in 1:nrow(measurments))
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-UserID <- UserID[1:10]
 for(i in 1:length(UserID))
 {
   
