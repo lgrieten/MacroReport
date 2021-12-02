@@ -889,6 +889,8 @@ kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
 
 
 ```
+
+
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 
 AF_rhythms<-c("atrial_fibrillation","atrial_flutter")
@@ -909,6 +911,7 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
+
 
 ```
 # Prescription types that are issued
