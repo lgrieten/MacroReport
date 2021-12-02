@@ -962,9 +962,6 @@ plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
 ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
   geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type)
 
- 
-
-
 kable(plot_prescriptions_type) %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
@@ -972,6 +969,26 @@ kable(plot_prescriptions_type) %>%
         font_size = 14)
 
 ```
+# Plot the correlation beetwen prescription duration and indication
+```{r, message=FALSE, echo=FALSE}
+plot_correlation_prescriptions_duration_type <-
+   prescriptions %>% 
+    select(dur, tags.0)  %>%
+    group_by(duration=dur,tag = tags.0 ) %>% 
+    summarise(cnt=n())  %>%
+    #filter(!is.na(type)) %>% 
+    #filter(type == prescription_types)%>%
+    ungroup()  %>% 
+    arrange(duration)
+
+plot_correlation_prescriptions_duration_type <- filter(plot_correlation_prescriptions_duration_type, (tag %in% prescription_types))
+plot_correlation_prescriptions_duration_type$duration <- as.factor(plot_correlation_prescriptions_duration_type$duration)
+
+ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_point(aes(size = cnt), colour = "#1e8d95") + theme_bw() + xlab("") + ylab("") + scale_size_continuous(range=c(3,20)) + geom_text(aes(label = cnt),colour="white") + xlab("Prescription duration") 
+
+```
+
+
 
 
 
