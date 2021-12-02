@@ -61,7 +61,7 @@ library(knitr)
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Spine")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/ZOL")
     #seperator for the CSV files, this can be ";" or "," 
     ssep = ";"
     #users_file <- file.path(path,"users.csv")
@@ -87,7 +87,7 @@ meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
-delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846")
+delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846","580747d1b2148f3b28ad7586")
 #user_data = filter(user_data, !(id %in% delete_users))
 profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
@@ -293,7 +293,7 @@ plot_right_1_df <-
            )
 
 ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects") + ggtitle("Distribution of age groups")
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects") + ggtitle("Distribution of age groups") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 
 rbind(`Total number of participants:` = number_of_participants
       ,`Average age:` = average_age
@@ -562,7 +562,7 @@ plot_left_3_df <-
            ,wd=paste(min_date,max_date,sep='-'))
 
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis")
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
 plot_right_3_df <- 
     measurments %>% 
@@ -585,7 +585,7 @@ plot_right_3_df <-
 
 ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#F8766D")) +
   geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") +
-  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")
+  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")+ geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 ```
 
 ```{r, message=FALSE, echo=FALSE}
@@ -637,7 +637,7 @@ compliance_plot_total<-
     summarise(cnt=n())
  
 ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30))    
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")   
 
 
 plot_right_4_df_a <-
@@ -676,7 +676,7 @@ plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
 
 ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none")
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white")
 ```
   
 ```{r, message=FALSE, echo=FALSE}
@@ -1029,12 +1029,15 @@ for(i in 1:nrow(measurments))
 
 for(i in 1:length(UserID))
 {
+  
 df_window = subset(measurments,userIds.0 == UserID[i])
 df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
 df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == "NA")|(df_window$data.context.symptoms.sym == "0"),"0", "200"))
 
 #DF windown alculation for prescription durations
   df_prescription = subset(prescriptions,user_id == UserID[i])
+  if(nrow(df_prescription) == 0) {next}
+  
   df_prescription$dur = df_prescription$duration/1000
   #df_prescription$activated_timestamp2 = as.Date(as.POSIXct((df_prescription$update_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
   
