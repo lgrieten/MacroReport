@@ -61,9 +61,10 @@ library(DT)
 library(eeptools)
 library(svDialogs)
 library(knitr)
+
 ```
 
-```{r}
+```{r,  echo= FALSE, message = FALSE}
 #build functions:
 get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, save=F, file_name) {
         df_ <-
@@ -119,7 +120,7 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/ZOL")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Hannover")
     #seperator for the CSV files, this can be ";" or "," 
     ssep = ";"
     #users_file <- file.path(path,"users.csv")
@@ -137,7 +138,7 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 #import source files
 m_per_day <- 2
 duration <- 7
-Today <- as.Date("2021-11-26")
+Today <- as.Date("2021-12-02")
 
 #inner join files
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
@@ -152,11 +153,10 @@ profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 Users_ID <- profile$id
-
 ```
 
 
-```{r}
+```{r, echo=FALSE, message=FALSE}
 #load dataset of prescriptions
 groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
 database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
@@ -171,7 +171,8 @@ data_sankey_prescriptions <- inner_join(database_prescriptions_filtered, groups,
 ```{r create new fields in the datasets, echo=FALSE}
 prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
 ```
-
+# High level data overview
+General metrics calculated from the dataset. 
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
 number_of_participants <- nrow(profile)
@@ -317,6 +318,7 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
 ```
 # Demography calculations
 ## Gender distribution
+
 
 ```{r demograpy calculations, echo=FALSE}
 plot_left_1_df <-
@@ -585,6 +587,9 @@ rbind(` Total` = paste("(",nrow(profile),")"),
         full_width = T,
         font_size = 14)
 ```
+## Prescription activation information
+Time series that plots the amount of prescriptions vs the date
+
 
 ```{r echo = FALSE}
 plot_left_2_df <-     
@@ -620,6 +625,9 @@ rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange
         full_width = T,
         font_size = 14)
 ```
+
+## Measurement behavior
+Distribution of the time of day when measurements were taken. Note that the time is represented in the GMT timezone and not up to date with the current timezone! 
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 plot_left_3_df <- 
@@ -714,7 +722,7 @@ compliance_plot_total<-
     summarise(cnt=n())
  
 ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")   
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients")
 
 
 plot_right_4_df_a <-
@@ -753,7 +761,7 @@ plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
 
 ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white") + ggtitle("Average amount of measurement per subject per age group") + ylab("Average amount of measurements")
 ```
   
 ```{r, message=FALSE, echo=FALSE}
@@ -990,7 +998,7 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
 ```
 # Prescription types that are issued
 
-```{r, message=FALSE, echo=FALSE}
+```{r eval=FALSE, message=FALSE, include=FALSE}
 
 prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
 plot_prescriptions_type <-
@@ -1021,6 +1029,7 @@ kable(plot_prescriptions_type) %>%
         font_size = 14)
 
 ```
+
 ```{r, message=FALSE, echo=FALSE}
 
 plot_prescriptions_duration <-
@@ -1037,9 +1046,9 @@ plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
   
 
 ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
-  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type)
+  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration (days)") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type) + ggtitle("Distribution of type of prescriptions provided ")
 
-kable(plot_prescriptions_type) %>%
+kable(plot_prescriptions_duration) %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1047,7 +1056,7 @@ kable(plot_prescriptions_type) %>%
 
 ```
 # Plot the correlation beetwen prescription duration and indication
-```{r, message=FALSE, echo=FALSE}
+```{r eval=FALSE, message=FALSE, include=FALSE}
 plot_correlation_prescriptions_duration_type <-
    prescriptions %>% 
     select(dur, tags.0)  %>%
@@ -1066,6 +1075,7 @@ ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_
 ```
 
 # Where do my patients come from, and where do they go
+The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format. 
 
 ```{r, message=FALSE, echo=FALSE}
 # 1. each user, arrange the data by the timestamp
@@ -1085,7 +1095,7 @@ agg <-
         to = lead(from, 1)
     ) %>%
     ungroup() %>%
-    group_by(from, to, type, next_type) %>%
+    group_by(from, to, type, next_type)%>%
     summarise(cnt = n_distinct(user_id)) %>%
     ungroup() %>%
     mutate(to = ifelse(is.na(to), from + 1, to),
@@ -1110,10 +1120,19 @@ agg <-
 #get_sankey_plot(agg, min_num_users = 1, max_num_steps = 2, width = 1400, 
  #               height = 700, save = T, file_name = 'sankyplot_1_min_users_10_steps.html')
 
-pp <- get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
-                height = 1500, save = F)
-#write.csv(agg,"/Users/larsgrieten/Dropbox (Qompium)/15 PRESENTATIONS/DATASET/agg.csv" )
-print(pp)
+
+get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
+                height = 1000, save = T,file_name = 'sankey.html')
+
+htmltools::includeHTML("./sankey.html")
+
+kable(agg) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
 ```
 
 
