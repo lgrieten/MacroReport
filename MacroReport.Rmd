@@ -32,8 +32,12 @@ if(!require(tidyverse)) install.packages('tidyverse')
 if(!require(reshape)) install.packages('reshape')
 if(!require(scales)) install.packages('scales')
 if(!require(svDialogs)) install.packages('svDialogs')
+if(!require(readxl)) install.packages('readxl')
+if(!require(devtools)) install.packages('devtools')
+if(!require(rCharts))  devtools::install_github('ramnathv/rCharts')
 
-
+library(readxl) # for reading xlsx files
+library(rCharts) # for sankeyPlot
 library(scales)
 library(reshape)
 library(tidyverse)
@@ -58,6 +62,60 @@ library(eeptools)
 library(svDialogs)
 library(knitr)
 ```
+
+```{r}
+#build functions:
+get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, save=F, file_name) {
+        df_ <-
+            df %>%
+            filter(cnt >= min_num_users, to <= max_num_steps) %>% 
+            mutate(
+                source = paste0(from, "_", type),
+                target = paste0(to, "_", next_type),
+                value = cnt
+            ) %>%
+            select(source, target, value)
+        
+        sankeyPlot <- rCharts$new()
+        sankeyPlot$setLib('http://timelyportfolio.github.io/rCharts_d3_sankey')
+        sankeyPlot$setTemplate(
+            afterScript = "
+            <script>
+            var colors = {};
+            d3.selectAll(' svg .node')[0].forEach(function(n) {
+            type = n.getElementsByTagName('text')[0].innerHTML.replace(/[0-9]/g, '');
+            if (typeof(colors[type]) == 'undefined') {
+            colors[type] = n.getElementsByTagName('rect')[0].style.fill;
+            } else {
+            n.getElementsByTagName('rect')[0].style.fill = colors[type] ;
+            };
+            });
+            
+            d3.selectAll('svg path.link')
+            .style('stroke', function(d){
+            return d.source.color;
+            })
+            //.style('stroke-opacity', .7)
+            </script>
+            "
+        )
+        
+        sankeyPlot$set(
+            data = df_,
+            nodePadding = 30,
+            layout = 32,
+            fontsize = 1,
+            nodeWidth = 30,
+            width = width,
+            height = height,
+            units = "users",
+            title = "Sankey Diagram"
+        )
+        if(save) sankeyPlot$save(file.path(file_name))
+        return(sankeyPlot)
+    }
+```
+
 
 ```{r input variables, echo=FALSE}
 #configure input variables
@@ -85,6 +143,7 @@ Today <- as.Date("2021-11-26")
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 ```
 
+
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
 delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846","580747d1b2148f3b28ad7586")
@@ -92,7 +151,22 @@ delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800
 profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
+Users_ID <- profile$id
+
 ```
+
+
+```{r}
+#load dataset of prescriptions
+groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
+database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
+database_prescriptions_filtered = filter(database_prescriptions, (user_id %in% Users_ID))
+
+# merge the 2 files by group id
+data_sankey_prescriptions <- inner_join(database_prescriptions_filtered, groups, by = c('group_id' = 'id'))
+
+```
+
 
 ```{r create new fields in the datasets, echo=FALSE}
 prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
@@ -991,6 +1065,56 @@ ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_
 
 ```
 
+# Where do my patients come from, and where do they go
+
+```{r, message=FALSE, echo=FALSE}
+# 1. each user, arrange the data by the timestamp
+# 2. create a sequence of numbers from 1:N (N=the number of flows each user had)
+# 3. create the next step of the user using the lead() with step=1
+# 4. aggrate all the flows made by all the users
+# 5. create a dummy flow which called "out". each user which ended the flow will have as a final step "out"
+
+agg <-
+    data_sankey_prescriptions %>%
+    arrange(user_id, creation_timestamp) %>%
+    group_by(user_id) %>%
+    mutate(
+        type=gsub(' ','_',grouptype),
+        from = 1:n(),
+        next_type = lead(type, 1),
+        to = lead(from, 1)
+    ) %>%
+    ungroup() %>%
+    group_by(from, to, type, next_type) %>%
+    summarise(cnt = n_distinct(user_id)) %>%
+    ungroup() %>%
+    mutate(to = ifelse(is.na(to), from + 1, to),
+           next_type = ifelse(is.na(next_type), 'out', next_type))
+
+
+
+# sankey plot function
+# the function have 7 variables
+# 1. df - holds data in a data.frame format
+# 2. min_num_users - the minimum number of users you wish to had in each flow
+# 3. max_num_steps - the maximum number of flows you wish to get
+# 4. width - the plot width
+# 5. height - the plot height
+# 6. save - an option to save the plot as HTML file. Deafult set to false
+# 7 file_name - the name of the saved HTML file
+
+
+#amount_data <- as.numeric(count(data))
+# run the get_sankey_plot. you can change any of the params, beside the "agg"
+
+#get_sankey_plot(agg, min_num_users = 1, max_num_steps = 2, width = 1400, 
+ #               height = 700, save = T, file_name = 'sankyplot_1_min_users_10_steps.html')
+
+pp <- get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
+                height = 1500, save = F)
+#write.csv(agg,"/Users/larsgrieten/Dropbox (Qompium)/15 PRESENTATIONS/DATASET/agg.csv" )
+print(pp)
+```
 
 
 
@@ -1108,7 +1232,7 @@ for(i in 1:nrow(measurments))
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
+UserID <- UserID[1:10]
 for(i in 1:length(UserID))
 {
   
