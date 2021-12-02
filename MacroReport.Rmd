@@ -32,8 +32,12 @@ if(!require(tidyverse)) install.packages('tidyverse')
 if(!require(reshape)) install.packages('reshape')
 if(!require(scales)) install.packages('scales')
 if(!require(svDialogs)) install.packages('svDialogs')
+if(!require(readxl)) install.packages('readxl')
+if(!require(devtools)) install.packages('devtools')
+if(!require(rCharts))  devtools::install_github('ramnathv/rCharts')
 
-
+library(readxl) # for reading xlsx files
+library(rCharts) # for sankeyPlot
 library(scales)
 library(reshape)
 library(tidyverse)
@@ -57,11 +61,77 @@ library(DT)
 library(eeptools)
 library(svDialogs)
 library(knitr)
+
 ```
+
+```{r configuration}
+#Do you need to analyse the Prescription history?
+SANKEY <- FALSE
+#Do you need to analyse the prescription tags?
+TAGS <- FALSE
+
+```
+
+
+
+
+```{r function builder,  eval=SANKEY, message=FALSE, include= FALSE}
+#build functions:
+get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, save=F, file_name) {
+        df_ <-
+            df %>%
+            filter(cnt >= min_num_users, to <= max_num_steps) %>% 
+            mutate(
+                source = paste0(from, "_", type),
+                target = paste0(to, "_", next_type),
+                value = cnt
+            ) %>%
+            select(source, target, value)
+        
+        sankeyPlot <- rCharts$new()
+        sankeyPlot$setLib('http://timelyportfolio.github.io/rCharts_d3_sankey')
+        sankeyPlot$setTemplate(
+            afterScript = "
+            <script>
+            var colors = {};
+            d3.selectAll(' svg .node')[0].forEach(function(n) {
+            type = n.getElementsByTagName('text')[0].innerHTML.replace(/[0-9]/g, '');
+            if (typeof(colors[type]) == 'undefined') {
+            colors[type] = n.getElementsByTagName('rect')[0].style.fill;
+            } else {
+            n.getElementsByTagName('rect')[0].style.fill = colors[type] ;
+            };
+            });
+            
+            d3.selectAll('svg path.link')
+            .style('stroke', function(d){
+            return d.source.color;
+            })
+            //.style('stroke-opacity', .7)
+            </script>
+            "
+        )
+        
+        sankeyPlot$set(
+            data = df_,
+            nodePadding = 30,
+            layout = 32,
+            fontsize = 1,
+            nodeWidth = 30,
+            width = width,
+            height = height,
+            units = "users",
+            title = "Sankey Diagram"
+        )
+        if(save) sankeyPlot$save(file.path(file_name))
+        return(sankeyPlot)
+    }
+```
+
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/ZOL")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Hannover")
     #seperator for the CSV files, this can be ";" or "," 
     ssep = ";"
     #users_file <- file.path(path,"users.csv")
@@ -79,11 +149,12 @@ library(knitr)
 #import source files
 m_per_day <- 2
 duration <- 7
-Today <- as.Date("2021-11-26")
+Today <- as.Date("2021-12-02")
 
 #inner join files
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 ```
+
 
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
@@ -92,12 +163,27 @@ delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800
 profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
+Users_ID <- profile$id
 ```
+
+
+```{r load prescriptions dataset, eval = FALSE, echo=FALSE, message=FALSE}
+#load dataset of prescriptions
+groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
+database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
+database_prescriptions_filtered = filter(database_prescriptions, (user_id %in% Users_ID))
+
+# merge the 2 files by group id
+data_sankey_prescriptions <- inner_join(database_prescriptions_filtered, groups, by = c('group_id' = 'id'))
+
+```
+
 
 ```{r create new fields in the datasets, echo=FALSE}
 prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
 ```
-
+# High level data overview
+General metrics calculated from the dataset. 
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
 number_of_participants <- nrow(profile)
@@ -243,6 +329,7 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
 ```
 # Demography calculations
 ## Gender distribution
+
 
 ```{r demograpy calculations, echo=FALSE}
 plot_left_1_df <-
@@ -511,6 +598,9 @@ rbind(` Total` = paste("(",nrow(profile),")"),
         full_width = T,
         font_size = 14)
 ```
+## Prescription activation information
+Time series that plots the amount of prescriptions vs the date
+
 
 ```{r echo = FALSE}
 plot_left_2_df <-     
@@ -547,6 +637,9 @@ rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange
         font_size = 14)
 ```
 
+## Measurement behavior
+Distribution of the time of day when measurements were taken. Note that the time is represented in the GMT timezone and not up to date with the current timezone! 
+
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 plot_left_3_df <- 
     measurments %>% 
@@ -565,7 +658,7 @@ plot_left_3_df <-
            ,wd=paste(min_date,max_date,sep='-'))
 
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements") + ggtitle("Amount of measurements on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
 plot_right_3_df <- 
     measurments %>% 
@@ -640,7 +733,7 @@ compliance_plot_total<-
     summarise(cnt=n())
  
 ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")   
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients")
 
 
 plot_right_4_df_a <-
@@ -679,7 +772,7 @@ plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
 
 ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white") + ggtitle("Average amount of measurement per subject per age group") + ylab("Average amount of measurements")
 ```
   
 ```{r, message=FALSE, echo=FALSE}
@@ -916,7 +1009,7 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
 ```
 # Prescription types that are issued
 
-```{r, message=FALSE, echo=FALSE}
+```{r eval=FALSE, message=FALSE, include=FALSE}
 
 prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
 plot_prescriptions_type <-
@@ -947,6 +1040,7 @@ kable(plot_prescriptions_type) %>%
         font_size = 14)
 
 ```
+
 ```{r, message=FALSE, echo=FALSE}
 
 plot_prescriptions_duration <-
@@ -963,9 +1057,9 @@ plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
   
 
 ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
-  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type)
+  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration (days)") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type) + ggtitle("Distribution of type of prescriptions provided ")
 
-kable(plot_prescriptions_type) %>%
+kable(plot_prescriptions_duration) %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -973,7 +1067,7 @@ kable(plot_prescriptions_type) %>%
 
 ```
 # Plot the correlation beetwen prescription duration and indication
-```{r, message=FALSE, echo=FALSE}
+```{r eval=FALSE, message=FALSE, include=FALSE}
 plot_correlation_prescriptions_duration_type <-
    prescriptions %>% 
     select(dur, tags.0)  %>%
@@ -991,6 +1085,66 @@ ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_
 
 ```
 
+# Where do my patients come from, and where do they go
+The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format. 
+
+```{r, eval = FALSE, message=FALSE, echo=FALSE}
+# 1. each user, arrange the data by the timestamp
+# 2. create a sequence of numbers from 1:N (N=the number of flows each user had)
+# 3. create the next step of the user using the lead() with step=1
+# 4. aggrate all the flows made by all the users
+# 5. create a dummy flow which called "out". each user which ended the flow will have as a final step "out"
+
+agg <-
+    data_sankey_prescriptions %>%
+    arrange(user_id, creation_timestamp) %>%
+    group_by(user_id) %>%
+    mutate(
+        type=gsub(' ','_',grouptype),
+        from = 1:n(),
+        next_type = lead(type, 1),
+        to = lead(from, 1)
+    ) %>%
+    ungroup() %>%
+    group_by(from, to, type, next_type)%>%
+    summarise(cnt = n_distinct(user_id)) %>%
+    ungroup() %>%
+    mutate(to = ifelse(is.na(to), from + 1, to),
+           next_type = ifelse(is.na(next_type), 'out', next_type))
+
+
+
+# sankey plot function
+# the function have 7 variables
+# 1. df - holds data in a data.frame format
+# 2. min_num_users - the minimum number of users you wish to had in each flow
+# 3. max_num_steps - the maximum number of flows you wish to get
+# 4. width - the plot width
+# 5. height - the plot height
+# 6. save - an option to save the plot as HTML file. Deafult set to false
+# 7 file_name - the name of the saved HTML file
+
+
+#amount_data <- as.numeric(count(data))
+# run the get_sankey_plot. you can change any of the params, beside the "agg"
+
+#get_sankey_plot(agg, min_num_users = 1, max_num_steps = 2, width = 1400, 
+ #               height = 700, save = T, file_name = 'sankyplot_1_min_users_10_steps.html')
+
+
+get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
+                height = 1000, save = T,file_name = 'sankey.html')
+
+htmltools::includeHTML("./sankey.html")
+
+kable(agg) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
+```
 
 
 
@@ -1108,7 +1262,6 @@ for(i in 1:nrow(measurments))
 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
-
 for(i in 1:length(UserID))
 {
   
