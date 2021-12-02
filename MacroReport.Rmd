@@ -64,7 +64,18 @@ library(knitr)
 
 ```
 
-```{r,  echo= FALSE, message = FALSE}
+```{r configuration}
+#Do you need to analyse the Prescription history?
+SANKEY <- FALSE
+#Do you need to analyse the prescription tags?
+TAGS <- FALSE
+
+```
+
+
+
+
+```{r function builder,  eval=SANKEY, message=FALSE, include= FALSE}
 #build functions:
 get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, save=F, file_name) {
         df_ <-
@@ -156,7 +167,7 @@ Users_ID <- profile$id
 ```
 
 
-```{r, echo=FALSE, message=FALSE}
+```{r load prescriptions dataset, eval = FALSE, echo=FALSE, message=FALSE}
 #load dataset of prescriptions
 groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
 database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
@@ -1077,7 +1088,7 @@ ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_
 # Where do my patients come from, and where do they go
 The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format. 
 
-```{r, message=FALSE, echo=FALSE}
+```{r, eval = FALSE, message=FALSE, echo=FALSE}
 # 1. each user, arrange the data by the timestamp
 # 2. create a sequence of numbers from 1:N (N=the number of flows each user had)
 # 3. create the next step of the user using the lead() with step=1
