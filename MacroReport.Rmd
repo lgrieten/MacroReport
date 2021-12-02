@@ -908,6 +908,36 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
         font_size = 14)
 
 ```
+# Prescription types that are issued
+
+```{r, message=FALSE, echo=FALSE}
+
+prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
+plot_prescriptions_type <-
+   prescriptions %>% 
+    select(tags.0) %>% 
+    group_by(type=tags.0) %>% 
+    summarise(cnt=n()) %>% 
+    #filter(!is.na(type)) %>% 
+    #filter(type == prescription_types)%>%
+    ungroup() %>% 
+    arrange(-cnt)
+plot_prescriptions_type <- filter(plot_prescriptions_type, (type %in% prescription_types))
+
+ggplot(plot_prescriptions_type, aes(x=type, y=cnt, fill="#F8766D")) +
+  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Type of prescriptions") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_type$cnt)+30)
+
+identified_prescriptions <- sum(plot_prescriptions_type$cnt)
+total_prescriptions <- nrow(prescriptions)
+total_unidentifiedprescriptions <- total_prescriptions-identified_prescriptions
+Unidentified_prescriptions <- data.frame("NO TAG",total_unidentifiedprescriptions)
+names(Unidentified_prescriptions) <- c("type","cnt")
+plot_prescriptions_type <- rbind(plot_prescriptions_type, Unidentified_prescriptions)
+
+```
+
+
+
 # Signal Quality Analysis
 
 ```{r, message=FALSE, echo=FALSE}
@@ -929,8 +959,9 @@ rbind(`Average % of insufficient quality:` = total_percent_quality, `Minimum % o
         full_width = F,
         font_size = 14)
 ```
-```{r, message=FALSE, echo=FALSE, warning=FALSE}
 
+
+```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # TABULATE MEASUREMENT ATTEMPTS PER USER AND MEASUREMENT
 meas_attempt_measurement <-
   measurments %>%
@@ -947,12 +978,6 @@ kable(meas_attempt_measurement_subset) %>%
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
-
-
-
-
-
-
 ```
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 
