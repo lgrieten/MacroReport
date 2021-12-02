@@ -94,6 +94,9 @@ measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 ```
 
+```{r create new fields in the datasets, echo=FALSE}
+prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
+```
 
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
@@ -292,8 +295,8 @@ plot_right_1_df <-
            ,cnt__=round(cnt/sum(cnt),2)
            )
 
-ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects") + ggtitle("Distribution of age groups") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects") + ggtitle("Distribution of age groups") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 
 rbind(`Total number of participants:` = number_of_participants
       ,`Average age:` = average_age
@@ -520,8 +523,8 @@ plot_left_2_df <-
         mutate(cnt_=round(cnt/sum(cnt)*100,1)
               ,cnt__=round(cnt/sum(cnt),2))
 
-ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations") + ggtitle("Activations over time")
+ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations") + ggtitle("Activations over time")
 ```
 
 ```{r echo = FALSE}
@@ -561,8 +564,8 @@ plot_left_3_df <-
            ,max_date=paste(day(max_date),month(max_date),sep='/')
            ,wd=paste(min_date,max_date,sep='-'))
 
-ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
+ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of activatoins") + ggtitle("Activations on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
 plot_right_3_df <- 
     measurments %>% 
@@ -583,9 +586,9 @@ plot_right_3_df <-
     summarise(cnt=n(),min_hour=min(hour)) %>% 
     arrange(min_hour) 
 
-ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") +
-  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")+ geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") +
+  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")+ geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 ```
 
 ```{r, message=FALSE, echo=FALSE}
@@ -636,8 +639,8 @@ compliance_plot_total<-
     group_by(compliance) %>%
     summarise(cnt=n())
  
-ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")   
+ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")   
 
 
 plot_right_4_df_a <-
@@ -675,8 +678,8 @@ plot_right_4_df_b <-
 plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
 
-ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white")
+ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white")
 ```
   
 ```{r, message=FALSE, echo=FALSE}
@@ -924,8 +927,8 @@ plot_prescriptions_type <-
     arrange(-cnt)
 plot_prescriptions_type <- filter(plot_prescriptions_type, (type %in% prescription_types))
 
-ggplot(plot_prescriptions_type, aes(x=type, y=cnt, fill="#F8766D")) +
-  geom_bar(stat="identity")+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Type of prescriptions") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_type$cnt)+30)
+ggplot(plot_prescriptions_type, aes(x=type, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Type of prescriptions") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_type$cnt)+30)
 
 identified_prescriptions <- sum(plot_prescriptions_type$cnt)
 total_prescriptions <- nrow(prescriptions)
@@ -933,6 +936,40 @@ total_unidentifiedprescriptions <- total_prescriptions-identified_prescriptions
 Unidentified_prescriptions <- data.frame("NO TAG",total_unidentifiedprescriptions)
 names(Unidentified_prescriptions) <- c("type","cnt")
 plot_prescriptions_type <- rbind(plot_prescriptions_type, Unidentified_prescriptions)
+
+kable(plot_prescriptions_type) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+
+```
+```{r, message=FALSE, echo=FALSE}
+
+plot_prescriptions_duration <-
+   prescriptions %>% 
+    select(dur) %>% 
+    group_by(type=dur) %>% 
+    summarise(cnt=n()) %>% 
+    #filter(!is.na(type)) %>% 
+    #filter(type == prescription_types)%>%
+    ungroup() %>% 
+    arrange(type)
+
+plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
+  
+
+ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
+  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type)
+
+ 
+
+
+kable(plot_prescriptions_type) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
 
 ```
 
