@@ -1,10 +1,18 @@
 ---
-title: "Measurement analysis"
-output:  html_document
+title: "Your experience with FibriCheck"
+author: "Fibricheck"
+date: "25/12/2021"
+#output:  html_document
+output: 
+   ioslides_presentation:
+    widescreen: true
+    logo: logo_wp.png
+    #css: slidestyles2.css
+runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
-#rm(list = ls())
+rm(list = ls())
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
 
 if(!require(prettydoc)) install.packages('prettydoc')
@@ -62,18 +70,7 @@ library(knitr)
 
 ```
 
-```{r configuration}
-#Do you need to analyse the Prescription history?
-SANKEY <- as.logical(TRUE)
-#Do you need to analyse the prescription tags?
-TAGS <- TRUE
-
-```
-
-
-
-
-```{r function builder,  eval= SANKEY, message=FALSE, include= FALSE}
+```{r function builder,  eval= TRUE, message=FALSE, include= FALSE}
 #build functions:
 get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, save=F, file_name) {
         df_ <-
@@ -129,7 +126,7 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/pfizer_italy")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Hannover")
     #seperator for the CSV files, this can be ";" or "," 
     ssep = ";"
     #users_file <- file.path(path,"users.csv")
@@ -145,12 +142,15 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
     prescriptions <- read.csv(prescriptions_file, sep=ssep)
 
 #import source files
-m_per_day <- 2
+m_per_day <- 4
 duration <- 30
 Today <- as.Date("2021-12-07")
 
 #inner join files
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
+
+#Unique USER ID'S
+UserID <- unique(profile$id)
 ```
 
 
@@ -169,19 +169,73 @@ Users_ID <- profile$id
 #load dataset of prescriptions
 groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
 database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
-database_prescriptions_filtered = filter(database_prescriptions, (user_id %in% Users_ID))
+#database_prescriptions_filtered = filter(database_prescriptions, (user_id %in% Users_ID))
+database_prescriptions_filtered = filter(database_prescriptions, (status == "ACTIVATED"))
 
 # merge the 2 files by group id
 data_sankey_prescriptions <- inner_join(database_prescriptions_filtered, groups, by = c('group_id' = 'id'))
-
 ```
 
 
 ```{r create new fields in the datasets, echo=FALSE}
 prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
 ```
-# High level data overview
-General metrics calculated from the dataset. 
+
+
+
+```{r include=FALSE}
+unique(measurments$data.context.symptoms.0)
+table(measurments$data.context.symptoms.0)
+measurments$data.context.symptoms.0 = as.character(measurments$data.context.symptoms.0)
+for(i in 1:nrow(measurments))
+{
+  if(measurments$data.context.symptoms.0[i] == "no_symptoms")
+  {
+    measurments$data.context.symptoms.sym[i]= "0"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "palpitations")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "fatigue")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "shortness_of_breath")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "lightheaded")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "other")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "Confused")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else if(measurments$data.context.symptoms.0[i] == "chest_pains")
+  {
+    measurments$data.context.symptoms.sym[i]= "1"
+  }
+  else
+  {
+    measurments$data.context.symptoms.sym[i]="NA"
+  }
+}
+```
+
+## Disclaimer
+- All data generated here is pseudominized
+- All data is based on patient generated data, the measurements, symptoms, demographics and medical history
+- This report is designed to give you an insight on the entire population you manage with FibriCheck. 
+
+## High level data overview
+The following tables shows some general metrics calculated out of your dataset. 
+
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
 number_of_participants <- nrow(profile)
@@ -320,16 +374,17 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
-        font_size = 14
-    ) 
+        font_size = 14,
+        ) 
 
 
 ```
-# Demography calculations
-## Gender distribution
 
+## Demography calculations | Distribution of genders
 
-```{r demograpy calculations, echo=FALSE}
+<div style="float: left; width: 60%;">
+
+```{r}
 plot_left_1_df <-
     profile %>% 
     mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
@@ -341,26 +396,35 @@ plot_left_1_df <-
               ,oldest=max(age)
               )
 
-
 ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
   geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = cnt), position = position_stack(vjust = 0.5), color = "white", size=6)
+```
 
+</div>
+
+<div style="float: right; width: 40%;">
+
+```{r}
 rbind(`Percentage men:` = percentage_men
       ,`Avg age man:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
       ,`Avg age women:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['avg']],1)
       ,`Oldest male participant:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['oldest']],1)
       ,`Oldest female participant:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['oldest']],1)
       ) %>%
-    kable() %>%
+    kable(caption = "Table with gender based metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
 ```
-
+</div>
 
 ## Age distribution
+
+<div style="float: left; width: 40%;">
+
+The distribution of age groups amongst your patients. 
 
 ```{r echo=FALSE}
 plot_right_1_df <-
@@ -381,21 +445,32 @@ plot_right_1_df <-
            )
 
 ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects") + ggtitle("Distribution of age groups") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects")  + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 
+```
+</div>
+
+
+<div style="float: right; width: 30%;">
+
+```{r}
 rbind(`Total number of participants:` = number_of_participants
       ,`Average age:` = average_age
       ,`Participants >40 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('40-50','50-60','60-70','70-80')]))
       ,`Participants >60 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('60-70','70-80')])
       )) %>%
-    kable() %>%
+    kable(caption = "Table with age based metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
 
 ```
+</div>
+
 ## Country distribution
+The countries where your patients came from. 
+<div style="float: left; width: 60%;">
 
 ```{r Country Analysis, echo=FALSE}
 
@@ -408,7 +483,7 @@ plot_country_total <-
   plot_country <- plot_country_total[ c("country", "Percentage")]
   
   ggplot(plot_country_total, aes(x="", y=freq, fill=country)) +
-  geom_bar(stat="identity", width=1, color="white") +
+  geom_bar(stat="identity", width=1, color="white") + scale_fill_brewer(palette="Greens") +
   coord_polar("y", start=0) +  theme_void() 
   
 most_popular_country <- as.vector(plot_country_total%>% 
@@ -417,17 +492,27 @@ most_popular_country <- as.vector(plot_country_total%>%
         .[[1]])
     
 tot_countries <- nrow(plot_country_total)
+```
+</div>
 
+<div style="float: right; width: 30%;">
+
+
+```{r}
 
 rbind(`Country with most users:`= most_popular_country,`Total countries:` = tot_countries )%>%
-    kable() %>%
+    kable(caption = "Table with country based metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
-
 ```
+
+</div>
+
 ## Phone distribution
+
+<div style="float: left; width: 60%;">
 
 ```{r Phone analysis, echo=FALSE}
 
@@ -449,7 +534,7 @@ plot_right_2_df <-
 
 
   ggplot(plot_right_2_df, aes(x="", y=cnt__, fill=device)) +
-  geom_bar(stat="identity", width=1, color="white") +
+  geom_bar(stat="identity", width=1, color="white") + scale_fill_brewer(palette="Greens") +
   coord_polar("y", start=0) +  theme_void() 
 
 
@@ -465,14 +550,25 @@ perc_ios <- plot_right_2_df%>%
 
 insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_number_of_measurements),2))
 
+```
+</div>
+
+<div style="float: right; width: 30%;">
+
+```{r}
 rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, `Percentage insufficient quality:` = insufficient_quality)%>%
-    kable() %>%
+    kable(caption = "Table with phone based metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
 ```
-# Medical History
+</div>
+
+
+
+## Medical History
+The following table shows the medical history information obtained from your patient population
 
 
 ```{r, message=FALSE, echo=FALSE}
@@ -493,8 +589,8 @@ medical_history<-
       mutate(age = round(age_calc(birthday, units = "years"))) 
 
       data <- as.matrix(medical_history)
-      data[which(data == "FALSE")] <- "0"
-      data[which(data == "TRUE")] <- "1"
+      data[which(data == "false")] <- "0"
+      data[which(data == "true")] <- "1"
       data <-as.data.frame(data)
       
       #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
@@ -523,10 +619,34 @@ medical_history<-
       diabetes<- sum(data$custom_fields.diabetes, na.rm=TRUE)
       bloodthinner<- sum(data$custom_fields.bloodThinner, na.rm=TRUE)
       blank_rows <- sum(rowSums(is.na(data))>2)
-      filled_in <-nrow(data)-blank_rows    
+      filled_in <-nrow(data) - blank_rows    
       
       History.df <- data.frame(AF_knowledge,HF,AD,AF_history,stroke,hypertension,diabetes,bloodthinner) 
       
+
+      
+
+rbind(` Total` = paste(nrow(profile),"patients"),
+      ` History of Heart Failure` = HF,
+      ` History of Diabetes` = diabetes,
+      ` History of Artery Disease` = AD,
+      ` History of AF` = AF_history,
+      ` History of hypertension` = hypertension,
+      ` History of Stroke` = stroke,
+      `Already takes a bloodthinner` = bloodthinner,
+      `Amount of filled in questionnaires` = filled_in,
+      `Amount of blank questionnaires` = blank_rows      ) %>%
+    kable() %>%
+    kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = T,
+        font_size = 14)
+```
+
+## Medical History of AF patients
+The medical history data from the patients that had FibriCheck based AFib measurements
+
+```{r}
 # AF PATIENTS
 medical_history_af<-
       profile[c("id","gender","birthday", "custom_fields.arrhythmias", "custom_fields.atrialFibrillationKnowledge", "custom_fields.arrhythmias", "custom_fields.heartFailure", "custom_fields.arteryDisease", "custom_fields.atrialFibrillation", "custom_fields.stroke", "custom_fields.hypertension", "custom_fields.diabetes", "custom_fields.bloodThinner")] %>%
@@ -535,8 +655,8 @@ medical_history_af<-
 medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$userIds.0))
 
       data_af <- as.matrix(medical_history_af_2)
-      data_af[which(data_af == "FALSE")] <- "0"
-      data_af[which(data_af == "TRUE")] <- "1"
+      data_af[which(data_af == "false")] <- "0"
+      data_af[which(data_af == "true")] <- "1"
       data_af <-as.data.frame(data_af)
       
       #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
@@ -553,7 +673,7 @@ medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$user
       data_af$gender <-as.numeric(data_af$gender)
 
       blank_rows_af <- sum(rowSums(is.na(data_af))>2)
-      filled_in <-nrow(data_af)-blank_rows_af    
+      filled_in_af <-nrow(data_af)-blank_rows_af    
       
       
       AF_knowledge_af <- sum(data_af$custom_fields.atrialFibrillationKnowledge, na.rm=TRUE)
@@ -567,19 +687,8 @@ medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$user
       blank_rows_af <- sum(rowSums(is.na(data_af))>2)
       filled_in_af <-nrow(data_af)-blank_rows_af    
       
-      
 
-rbind(` Total` = paste("(",nrow(profile),")"),
-      ` History of Heart Failure` = HF,
-      ` History of Diabetes` = diabetes,
-      ` History of Artery Disease` = AD,
-      ` History of AF` = AF_history,
-      ` History of hypertension` = hypertension,
-      ` History of Stroke` = stroke,
-      `Already takes a bloodthinner` = bloodthinner,
-      `Amount of filled in questionnaires` = filled_in,
-      `Amount of blank questionnaires` = blank_rows,
-      ` AF patients` = paste("(",nrow(list_user_id_AF),")","/","(",nrow(profile),")"),
+rbind(` AF patients` = paste(nrow(list_user_id_AF),"of",nrow(profile),"patients"),
       ` History of Heart Failure` = HF_af,
       ` History of Diabetes` = diabetes_af,
       ` History of Artery Disease` = AD_af,
@@ -596,8 +705,11 @@ rbind(` Total` = paste("(",nrow(profile),")"),
         full_width = T,
         font_size = 14)
 ```
+
 ## Prescription activation information
-Time series that plots the amount of prescriptions vs the date
+Time series that plots the amount of prescriptions versus the date
+
+<div style="float: left; width: 60%;">
 
 
 ```{r echo = FALSE}
@@ -614,6 +726,9 @@ plot_left_2_df <-
 ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations") + ggtitle("Activations over time")
 ```
+</div>
+
+<div style="float: right; width: 20%;">
 
 ```{r echo = FALSE}
 peck_hour <- 
@@ -628,14 +743,16 @@ peck_hour <-
 rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange(-cnt) %>% head(1) %>% .[[1]],origin='1970-01-01'))
       ,`Peak activation - Time (UTC):` = peck_hour
       ) %>%
-    kable() %>%
+    kable(caption = "Table with activation metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = T,
         font_size = 14)
 ```
 
-## Measurement behavior
+</div>
+
+## Measurement behavior - measurement intensity
 Distribution of the time of day when measurements were taken. Note that the time is represented in the GMT timezone and not up to date with the current timezone! 
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
@@ -658,6 +775,14 @@ plot_left_3_df <-
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements") + ggtitle("Amount of measurements on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
+```
+
+
+## Measurement behavior - measurements throughout the day
+
+<div style="float: left; width: 60%;">
+
+```{r}
 plot_right_3_df <- 
     measurments %>% 
     select(creationTimestamp) %>% 
@@ -681,6 +806,9 @@ ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") +
   scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")+ geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 ```
+</div>
+
+<div style="float: right; width: 20%;">
 
 ```{r, message=FALSE, echo=FALSE}
 max_measures_per_day <- 
@@ -705,13 +833,99 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
         font_size = 14)
 ```
 
+</div>
+
+
+
+## Compliance recording
+
+```{r}
+MOTIVATION_DATA = NULL
+for(i in 1:length(UserID))
+{
+  df_window = subset(measurments,userIds.0 == UserID[i])
+  df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
+  df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == "NA")|(df_window$data.context.symptoms.sym == "0"),"0", "200"))
+  
+  #DF windown alculation for prescription durations
+  df_prescription = subset(prescriptions,user_id == UserID[i])
+  if(nrow(df_prescription) == 0) {next}
+  
+  #df_prescription$dur = df_prescription$duration/1000
+  #df_prescription$activated_timestamp2 = as.Date(as.POSIXct((df_prescription$update_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
+  
+  df_prescription$activated_timestamp2 = as_datetime((df_prescription$update_timestamp/1000)) 
+  df_prescription$end_date = df_prescription$activated_timestamp2 + df_prescription$dur
+  df_prescription$today = as_datetime(Today)
+  total_prescription_days = sum(df_prescription$dur)
+  Total_days_in_last_block = as.numeric(as_datetime(Today)-max(df_prescription$activated_timestamp2))
+  Total_days_last_block = as.numeric(max(df_prescription$end_date)-max(df_prescription$activated_timestamp2))
+  
+  actual_prescription_days <- 
+    if(max(df_prescription$end_date) >= Today)
+    {
+      actual_prescription_days=total_prescription_days - Total_days_last_block + Total_days_in_last_block
+    } else {
+      actual_prescription_days = total_prescription_days
+    }
+  df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_timestamp/1000))   
+  total_measurements = nrow(df_window)
+  first_measurement = min(df_window$data.measurement_timestamp)
+  last_measurement = max(df_window$data.measurement_timestamp)
+  #Total_days = actual_prescription_days/60/60/24
+  Total_days = actual_prescription_days
+
+  Total_days_motivation_met = sum(table(as.Date(df_window$data.measurement_timestamp))>=m_per_day)
+  compliance = round(100*sum(nrow(df_window))/(Total_days),2)
+  motivation= round(sum((table(as.Date(df_window$data.measurement_timestamp))>=m_per_day))*100/Total_days,2)
+  
+summary <- data.frame(UserID[i],first_measurement, last_measurement, total_measurements, Total_days, actual_prescription_days, Total_days_motivation_met, compliance, motivation)
+MOTIVATION_DATA <- rbind(MOTIVATION_DATA,summary)
+}
+```
+
+
+
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
+##NEW SECTION
 #in order to make the compliance plot accurate, we'll need to create a table with the data generated from the per-patient level and build an aggregate view of this. Based on this table the following plots can be genrated. 
+
+#MOTIVATION PLOT
+motivation_plot <-
+  MOTIVATION_DATA %>%
+  group_by(UserID.i.) %>%
+  mutate(cnt_= motivation, cnt__=round(cnt_), motivation = ifelse(cnt__<10,'<10%'
+                                     ,ifelse(cnt__<20,'10%-20%'
+                                             ,ifelse(cnt__<30,'20%-30%'
+                                                     ,ifelse(cnt__<40,'30%-40%'
+                                                             ,ifelse(cnt__<50,'40%-50%'
+                                                                      ,ifelse(cnt__<60,'50%-60%'
+                                                                               ,ifelse(cnt__<70,'60%-70%'
+                                                                                        ,ifelse(cnt__<80,'70%-80%'
+                                                                                                 ,ifelse(cnt__<90,'80%-90%'
+                                                                                                          ,ifelse(cnt__<100,'90%-99%'
+                                                                                                                   ,ifelse(cnt__<150,'l00%'
+                                                                                                                           ))))))))))))                                                                                                                                                    
+
+motivation_plot_total<-
+    motivation_plot %>%
+    group_by(motivation) %>%
+    summarise(cnt=n())
+
+ggplot(motivation_plot_total, aes(x=motivation, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=motivation_plot_total$motivation) + theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user motivation") + ylab("Amount of patients") + xlab(paste('Motivation of patients (% of days where',m_per_day,'measurements per day were performed)'))
+
+```
+
+## User compliance
+
+```{r}
+#COMPLIANCE PLOT
+
 compliance_plot <-
-  measurments %>%
-  group_by(userIds.0) %>%
-  summarise(freq=n_distinct(id))%>% 
-  mutate(cnt_=(freq/m_per_day/duration), cnt__=round(cnt_*100), compliance = ifelse(cnt__<10,'<10%'
+  MOTIVATION_DATA %>%
+  group_by(UserID.i.) %>%
+  mutate(cnt_= compliance, cnt__=round(cnt_), compliance = ifelse(cnt__<10,'<10%'
                                      ,ifelse(cnt__<20,'10%-20%'
                                              ,ifelse(cnt__<30,'20%-30%'
                                                      ,ifelse(cnt__<40,'30%-40%'
@@ -721,9 +935,10 @@ compliance_plot <-
                                                                                         ,ifelse(cnt__<80,'70%-80%'
                                                                                                  ,ifelse(cnt__<90,'80%-90%'
                                                                                                           ,ifelse(cnt__<100,'90%-100%'
-                                                                                                                   ,ifelse(cnt__<150,'b 100% -150%'
-                                                                                                                           ,ifelse(cnt__<200,'b 150%-200%'
-                                                                                                                                   ,ifelse(cnt__>200,'more then 200%',"/"))))))))))))))                                                                                                                                                        
+                                                                                                                   ,ifelse(cnt__<150,'100% -150%'
+                                                                                                                           ,ifelse(cnt__<200,'150%-200%'
+                                                                                                                                   ,ifelse(cnt__>200,'more then
+200%',"/"))))))))))))))                                                                                                                                                             
 
 compliance_plot_total<-
     compliance_plot %>%
@@ -731,9 +946,14 @@ compliance_plot_total<-
     summarise(cnt=n())
  
 ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients")
+  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients") 
 
 
+```
+
+## Amount of measurement per subject per age category
+
+```{r}
 plot_right_4_df_a <-
     profile %>% 
     mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
@@ -772,7 +992,7 @@ plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white") + ggtitle("Average amount of measurement per subject per age group") + ylab("Average amount of measurements")
 ```
-  
+
 ```{r, message=FALSE, echo=FALSE}
 max_compliance <- as.vector(compliance_plot%>% 
         arrange(-cnt_) %>%
@@ -797,7 +1017,7 @@ rbind(`Most compliant user (%):` = paste (as.character(max_compliance),"%", sep 
         font_size = 14)
 ```
 
-# Diagnostics
+##  Diagnostics
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -957,6 +1177,7 @@ kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms") %>%
 
 
 ```
+
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 non_AF <- c("extrasystoles_frequent","extrasystoles_isolated","tachycardia", "extrasystoles_big_episode","extrasystoles_trig_episode","extrasystoles_bigminy")
 symptoms_table_non_af <-
@@ -981,7 +1202,6 @@ kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
 
 ```
 
-
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 
 AF_rhythms<-c("atrial_fibrillation","atrial_flutter")
@@ -1005,9 +1225,10 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
 
 
 ```
-# Prescription types that are issued
 
-```{r eval = TRUE, message=FALSE, include=FALSE}
+## Prescription types that are issued
+
+```{r eval = FALSE, message=FALSE, include=FALSE}
 
 prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
 plot_prescriptions_type <-
@@ -1064,8 +1285,10 @@ kable(plot_prescriptions_duration) %>%
         font_size = 14)
 
 ```
-# Plot the correlation beetwen prescription duration and indication
-```{r eval = TRUE, message=FALSE, include=FALSE}
+
+## Plot the correlation beetwen prescription duration and indication
+
+```{r eval = FALSE, message=FALSE, include=FALSE}
 plot_correlation_prescriptions_duration_type <-
    prescriptions %>% 
     select(dur, tags.0)  %>%
@@ -1083,7 +1306,8 @@ ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_
 
 ```
 
-# Where do my patients come from, and where do they go
+## Where do my patients come from, and where do they go
+
 The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format. 
 
 ```{r, eval = TRUE, message=FALSE, echo=FALSE}
@@ -1092,6 +1316,8 @@ The following plot is a Sankey plot which shows the progress of your patients wi
 # 3. create the next step of the user using the lead() with step=1
 # 4. aggrate all the flows made by all the users
 # 5. create a dummy flow which called "out". each user which ended the flow will have as a final step "out"
+#data_sankey_prescriptions2 <- filter(data_sankey_prescriptions, group_id != "5c90a3294cedfd0006206e08")
+
 
 agg <-
     data_sankey_prescriptions %>%
@@ -1144,10 +1370,7 @@ kable(agg) %>%
 write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
 ```
 
-
-
-
-# Signal Quality Analysis
+## Signal Quality Analysis
 
 ```{r, message=FALSE, echo=FALSE}
   #Percentage of insufficient quality
@@ -1169,6 +1392,7 @@ rbind(`Average % of insufficient quality:` = total_percent_quality, `Minimum % o
         font_size = 14)
 ```
 
+## Measurement attempts
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # TABULATE MEASUREMENT ATTEMPTS PER USER AND MEASUREMENT
@@ -1188,6 +1412,7 @@ kable(meas_attempt_measurement_subset) %>%
         full_width = F,
         font_size = 14)
 ```
+
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 
 # TABULATE MEASUREMENT QUALITY VS ACTIVITY
@@ -1209,55 +1434,8 @@ kable(percent_quality_activity) %>%
         font_size = 14)
 
 ```
-# Rhythm recordings
 
-```{r include=FALSE}
-UserID <- unique(profile$id)
-
-unique(measurments$data.context.symptoms.0)
-table(measurments$data.context.symptoms.0)
-measurments$data.context.symptoms.0 = as.character(measurments$data.context.symptoms.0)
-for(i in 1:nrow(measurments))
-{
-  if(measurments$data.context.symptoms.0[i] == "no_symptoms")
-  {
-    measurments$data.context.symptoms.sym[i]= "0"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "palpitations")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "fatigue")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "shortness_of_breath")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "lightheaded")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "other")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "Confused")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else if(measurments$data.context.symptoms.0[i] == "chest_pains")
-  {
-    measurments$data.context.symptoms.sym[i]= "1"
-  }
-  else
-  {
-    measurments$data.context.symptoms.sym[i]="NA"
-  }
-}
-```
-
+## Individual plots
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 for(i in 1:length(UserID))
