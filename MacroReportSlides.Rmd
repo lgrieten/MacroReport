@@ -123,7 +123,6 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
     }
 ```
 
-
 ```{r input variables, echo=FALSE}
 #configure input variables
     path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Hannover")
@@ -153,7 +152,6 @@ meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
 UserID <- unique(profile$id)
 ```
 
-
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
 delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846","580747d1b2148f3b28ad7586")
@@ -163,7 +161,6 @@ measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 Users_ID <- profile$id
 ```
-
 
 ```{r load prescriptions dataset, eval = TRUE, echo=FALSE, message=FALSE}
 #load dataset of prescriptions
@@ -176,12 +173,9 @@ database_prescriptions_filtered = filter(database_prescriptions, (status == "ACT
 data_sankey_prescriptions <- inner_join(database_prescriptions_filtered, groups, by = c('group_id' = 'id'))
 ```
 
-
 ```{r create new fields in the datasets, echo=FALSE}
 prescriptions$dur <- round(prescriptions$duration/1000/60/60/24)
 ```
-
-
 
 ```{r include=FALSE}
 unique(measurments$data.context.symptoms.0)
@@ -422,9 +416,10 @@ rbind(`Percentage men:` = percentage_men
 
 ## Age distribution
 
+The distribution of age groups amongst your patients. 
+
 <div style="float: left; width: 40%;">
 
-The distribution of age groups amongst your patients. 
 
 ```{r echo=FALSE}
 plot_right_1_df <-
@@ -511,6 +506,7 @@ rbind(`Country with most users:`= most_popular_country,`Total countries:` = tot_
 </div>
 
 ## Phone distribution
+An overview of which types of smartphones your patients use. 
 
 <div style="float: left; width: 60%;">
 
@@ -550,13 +546,27 @@ perc_ios <- plot_right_2_df%>%
 
 insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_number_of_measurements),2))
 
+
+plost_insuffqual <-     
+        measurments %>% 
+        group_by(device=data.device.manufacturer, indicator = data.indicator) %>% 
+        summarise (cnt = n())%>%
+        spread(indicator, cnt) %>%
+        replace(is.na(.), 0) %>%
+        rowwise() %>%
+        mutate(total = sum(c(normal, warning, quality, urgent))) %>%
+        mutate(insuff_q = round((quality/total)*100,1))
+
+ggplot(plost_insuffqual, aes(x=device, y=insuff_q, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Device manufacturers") + ylab("% of insufficient quality")  + geom_text(aes(label = insuff_q), vjust = 1.5, colour = "white")
+
 ```
 </div>
 
 <div style="float: right; width: 30%;">
 
 ```{r}
-rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, `Percentage insufficient quality:` = insufficient_quality)%>%
+rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, `Average % insufficient quality:` = insufficient_quality)%>%
     kable(caption = "Table with phone based metrics") %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
@@ -565,6 +575,7 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
 ```
 </div>
 
+## Medical History
 
 
 ## Medical History
@@ -753,7 +764,7 @@ rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange
 </div>
 
 ## Measurement behavior - measurement intensity
-Distribution of the time of day when measurements were taken. Note that the time is represented in the GMT timezone and not up to date with the current timezone! 
+Distribution over time in which weeks measurements were taken. 
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 plot_left_3_df <- 
@@ -778,9 +789,11 @@ ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
 ```
 
 
-## Measurement behavior - measurements throughout the day
+## Measurement behavior
+Distribution of measurements taken throughout the day. Note that the time is GMT. 
 
 <div style="float: left; width: 60%;">
+
 
 ```{r}
 plot_right_3_df <- 
@@ -804,7 +817,7 @@ plot_right_3_df <-
 
 ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") +
-  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + ggtitle("Measurements taken throughout the day")+ geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
 ```
 </div>
 
@@ -1017,7 +1030,7 @@ rbind(`Most compliant user (%):` = paste (as.character(max_compliance),"%", sep 
         font_size = 14)
 ```
 
-##  Diagnostics
+## Diagnostics
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -1370,27 +1383,50 @@ kable(agg) %>%
 write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
 ```
 
+
 ## Signal Quality Analysis
 
-```{r, message=FALSE, echo=FALSE}
-  #Percentage of insufficient quality
-percent_quality <-cast(measurments, userIds.0 ~ data.diagnosis.label.0)
-percent_quality <-as.matrix(percent_quality)
-percent_quality_2 <- as.data.frame(prop.table(percent_quality, 1)*100)
-
-percent_quality_2<- percent_quality_2 %>%
-select(userIds.0,quality_to_low)
+```{r}
+measurerement_profiles_1 <-
+  meas_prof_file %>%
+  select(userIds.0, birthday) %>%
+  mutate(age = as.numeric(difftime(Sys.Date(), birthday, units = 'days'))
+         ,age = age / 365
+         ,age = ifelse(age<20,'<20'
+                       ,ifelse(age<30,'20-30'
+                               ,ifelse(age<40,'30-40'
+                                       ,ifelse(age<50,'40-50'
+                                               ,ifelse(age<60,'50-60'
+                                                       ,ifelse(age<70,'60-70','70-80')))))), cnt= n()) %>%
+  group_by(userIds.0, age) %>%
+  summarise(n()) 
   
-total_percent_quality = glue::glue('{round(mean(percent_quality_2$quality_to_low),2)}%')
-minimum_amount_quality = glue::glue('{round(min(percent_quality_2$quality_to_low),2)}%')
-maximum_amount_quality = glue::glue('{round(max(percent_quality_2$quality_to_low),2)}%')
-rbind(`Average % of insufficient quality:` = total_percent_quality, `Minimum % of insufficient quality:` = minimum_amount_quality ,`Maximum % of insufficient quality:` = maximum_amount_quality  ) %>% 
-    kable() %>%
-    kable_styling(
-        bootstrap_options = c("hover", "condensed", "responsive"),
-        full_width = F,
-        font_size = 14)
+  
+
+measurerement_profiles_2 <-
+  meas_prof_file %>%
+  group_by(userid=userIds.0, indicator = data.indicator) %>% 
+  summarise (cnt = n())%>%
+  spread(indicator, cnt) %>%
+  replace(is.na(.), 0) %>%
+  rowwise() %>%
+  mutate(total = sum(c(normal, warning, quality, urgent))) %>%
+  mutate(insuff_q = round((quality/total)*100,1))
+
+measurerement_profiles <- inner_join(measurerement_profiles_2,measurerement_profiles_1, by = c('userid'='userIds.0'))
+
+measurerement_profiles_fin <- 
+  measurerement_profiles %>%
+  group_by(age) %>%
+  summarize(mean_Q = round(mean(insuff_q, na.rm = TRUE),2))
+
+
+ggplot(measurerement_profiles_fin, aes(x=age, y=mean_Q, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("Average insufficient quality")  + geom_text(aes(label = mean_Q), vjust = 1.5, colour = "white")
+
 ```
+
+
 
 ## Measurement attempts
 
@@ -1434,6 +1470,7 @@ kable(percent_quality_activity) %>%
         font_size = 14)
 
 ```
+
 
 ## Individual plots
 
