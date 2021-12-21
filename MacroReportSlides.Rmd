@@ -7,7 +7,7 @@ output:
    ioslides_presentation:
     widescreen: true
     logo: logo_wp.png
-    #css: slidestyles2.css
+    css: slidestyles2.css
 runtime: shiny
 ---
 
@@ -53,6 +53,7 @@ library(readxl)
 library(knitr)
 library(kableExtra)
 library(ggplot2)
+library(ggpubr)
 library(glue)
 library(scales)
 library(lubridate)
@@ -228,7 +229,7 @@ for(i in 1:nrow(measurments))
 - This report is designed to give you an insight on the entire population you manage with FibriCheck. 
 
 ## High level data overview
-The following tables shows some general metrics calculated out of your dataset. 
+The following table shows general metrics calculated out of your dataset. 
 
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
@@ -374,7 +375,8 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
 
 ```
 
-## Demography calculations | Distribution of genders
+## Demography calculations 
+Distribution of genders
 
 <div style="float: left; width: 60%;">
 
@@ -388,11 +390,12 @@ plot_left_1_df <-
     summarise(cnt=n()
               ,avg=mean(age)
               ,oldest=max(age)
+              ,total = paste(round(cnt/nrow(profile)*100,0),"%")
               )
 
 ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
   geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = cnt), position = position_stack(vjust = 0.5), color = "white", size=6)
+  coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = total), position = position_stack(vjust = 0.5), color = "white", size=6)
 ```
 
 </div>
@@ -400,7 +403,8 @@ ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
 <div style="float: right; width: 40%;">
 
 ```{r}
-rbind(`Percentage men:` = percentage_men
+rbind(`Total # patients:` = nrow(profile)
+      ,`Percentage men:` = percentage_men
       ,`Avg age man:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
       ,`Avg age women:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['avg']],1)
       ,`Oldest male participant:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['oldest']],1)
@@ -418,7 +422,7 @@ rbind(`Percentage men:` = percentage_men
 
 The distribution of age groups amongst your patients. 
 
-<div style="float: left; width: 40%;">
+<div style="float: left; width: 70%;">
 
 
 ```{r echo=FALSE}
@@ -431,13 +435,20 @@ plot_right_1_df <-
                  ,ifelse(age<40,'30-40'
                  ,ifelse(age<50,'40-50'
                  ,ifelse(age<60,'50-60'
-                 ,ifelse(age<70,'60-70','70-80'))))))) %>% 
+                 ,ifelse(age<70,'60-70'
+                 ,ifelse(age<80,'70-80','>80')))))))) %>% 
+
     group_by(age) %>% 
     summarise(cnt=n()) %>% 
     ungroup %>% 
     mutate(cnt_=round(cnt/sum(cnt)*100,1)
            ,cnt__=round(cnt/sum(cnt),2)
            )
+#manual reordering the table structure
+pref_order_plot_right_1_df <- c('<20','20-30','30-40','40-50','50-60','60-70','70-80','>80')
+plot_right_1_df$age <- factor( as.character(plot_right_1_df$age), levels=pref_order_plot_right_1_df )
+plot_right_1_df <- plot_right_1_df[order(plot_right_1_df$age),]
+
 
 ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects")  + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
@@ -451,14 +462,19 @@ ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
 ```{r}
 rbind(`Total number of participants:` = number_of_participants
       ,`Average age:` = average_age
-      ,`Participants >40 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('40-50','50-60','60-70','70-80')]))
-      ,`Participants >60 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('60-70','70-80')])
-      )) %>%
-    kable(caption = "Table with age based metrics") %>%
+      ,`Participants >40 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('40-50','50-60','60-70','70-80','>80')]))
+      ,`Participants >50 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('50-60','60-70','70-80','>80')]))
+      ,`Participants >60 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('60-70','70-80','>80')]))
+      ,`Participants >70 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('70-80','>80')]))
+      ,`Participants >80 years :` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('>80')]))
+      ) %>%
+    kable() %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
+
+
 
 ```
 </div>
@@ -546,20 +562,6 @@ perc_ios <- plot_right_2_df%>%
 
 insufficient_quality <- scales::percent(round((nrow(filter(measurments, data.indicator == "quality"))/total_number_of_measurements),2))
 
-
-plost_insuffqual <-     
-        measurments %>% 
-        group_by(device=data.device.manufacturer, indicator = data.indicator) %>% 
-        summarise (cnt = n())%>%
-        spread(indicator, cnt) %>%
-        replace(is.na(.), 0) %>%
-        rowwise() %>%
-        mutate(total = sum(c(normal, warning, quality, urgent))) %>%
-        mutate(insuff_q = round((quality/total)*100,1))
-
-ggplot(plost_insuffqual, aes(x=device, y=insuff_q, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Device manufacturers") + ylab("% of insufficient quality")  + geom_text(aes(label = insuff_q), vjust = 1.5, colour = "white")
-
 ```
 </div>
 
@@ -574,13 +576,42 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
         font_size = 14)
 ```
 </div>
+## Phone performance
+Distribution of insufficient quality by phone manufacturer
 
-## Medical History
+```{r }
+
+plost_insuffqual <-     
+        measurments %>% 
+        group_by(device=data.device.manufacturer, indicator = data.indicator) %>% 
+        summarise (cnt = n())%>%
+        spread(indicator, cnt) %>%
+        replace(is.na(.), 0) %>%
+        rowwise() %>%
+        mutate(total = sum(c(normal, warning, quality, urgent))) %>%
+        mutate(insuff_q = round((quality/total)*100,1))
+
+o1 <- ggplot(plost_insuffqual, aes(x=device, y=insuff_q, fill="#1e8d95")) + 
+     geom_bar(stat="identity", fill = "#3b7bdb")+theme_minimal() +
+     theme(legend.position = "none") +
+     xlab("Device manufacturers") +
+     ylab("% of insufficient quality") +  
+     geom_text(aes(label = insuff_q), vjust = 1.5, colour = "white")
+
+o2 <-  ggplot(plost_insuffqual, aes(x=device, y=total, fill="#1e8d95")) + 
+     geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() +
+     theme(legend.position = "none") +
+     ylab("Amount of measurements taken") +  
+     geom_text(aes(label = total), vjust = 1.5, colour = "white")
+
+ggarrange(o2, o1, nrow = 2)
+
+     
+```
 
 
 ## Medical History
 The following table shows the medical history information obtained from your patient population
-
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -737,6 +768,7 @@ plot_left_2_df <-
 ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations") + ggtitle("Activations over time")
 ```
+
 </div>
 
 <div style="float: right; width: 20%;">
@@ -850,7 +882,10 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
 
 
 
-## Compliance recording
+## User compliance and motivation
+- Users are asked to take `r m_per_day` per day
+- Compliance is total performend measurements / total expected measurements
+- Motivation is % of days that the patient actually performed `r m_per_day` per day
 
 ```{r}
 MOTIVATION_DATA = NULL
@@ -925,8 +960,39 @@ motivation_plot_total<-
     group_by(motivation) %>%
     summarise(cnt=n())
 
-ggplot(motivation_plot_total, aes(x=motivation, y=cnt, fill="#1e8d95")) +
+tt1 <- ggplot(motivation_plot_total, aes(x=motivation, y=cnt, fill="#1e8d95")) +
   geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=motivation_plot_total$motivation) + theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user motivation") + ylab("Amount of patients") + xlab(paste('Motivation of patients (% of days where',m_per_day,'measurements per day were performed)'))
+
+#COMPLIANCE PLOT
+
+compliance_plot <-
+  MOTIVATION_DATA %>%
+  group_by(UserID.i.) %>%
+  mutate(cnt_= compliance, cnt__=round(cnt_), compliance = ifelse(cnt__<10,'<10%'
+                                     ,ifelse(cnt__<20,'10%-20%'
+                                             ,ifelse(cnt__<30,'20%-30%'
+                                                     ,ifelse(cnt__<40,'30%-40%'
+                                                             ,ifelse(cnt__<50,'40%-50%'
+                                                                      ,ifelse(cnt__<60,'50%-60%'
+                                                                               ,ifelse(cnt__<70,'60%-70%'
+                                                                                        ,ifelse(cnt__<80,'70%-80%'
+                                                                                                 ,ifelse(cnt__<90,'80%-90%'
+                                                                                                          ,ifelse(cnt__<100,'90%-100%'
+                                                                                                                   ,ifelse(cnt__<150,'100% -150%'
+                                                                                                                           ,ifelse(cnt__<200,'150%-200%'
+                                                                                                                                   ,ifelse(cnt__>200,'more then
+200%',"0%"))))))))))))))                                                                                                                                                             
+
+compliance_plot_total<-
+    compliance_plot %>%
+    group_by(compliance) %>%
+    summarise(cnt=n())
+ 
+tt2 <-ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
+  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients") 
+
+ggarrange(tt1, tt2, nrow = 2)
+
 
 ```
 
