@@ -891,7 +891,7 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
 
 </div>
 
-<div style="float: left; width: 50%;">
+<div style="float: left; width: 70%;">
 
 ```{r}
 MOTIVATION_DATA = NULL
@@ -938,7 +938,7 @@ MOTIVATION_DATA <- rbind(MOTIVATION_DATA,summary)
 }
 ```
 
-</div>
+
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 ##NEW SECTION
@@ -1001,7 +1001,7 @@ ggarrange(tt1, tt2, nrow = 2)
 
 
 ```
-
+</div>
 <!-- ## User compliance -->
 
 <!-- ```{r} -->
@@ -1180,73 +1180,100 @@ rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrilla
 
 ```
 
-## Heart rhythm findings
+## Heart rhythm & Symptom findings
+Contingency table showing the heart rhythm and symptom correlation.
 
-<div style="float: left; width: 50%;">
+<!-- <div style="float: left; width: 50%;"> -->
 
-```{r, message=FALSE,warning=FALSE, echo=FALSE}
+<!-- ```{r, message=FALSE,warning=FALSE, echo=FALSE} -->
 
-# ggplot(arrhythmia_table, aes(x=`Heart rhythm`, y=`%`, fill="#1e8d95")) +
-#   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label = `%`), vjust = -1, colour = "black") + ylab("Prevalence of arrhythmia's (%)")
-kable(arrhythmia_table) %>%
-     kable_styling(
-          bootstrap_options = c("hover", "condensed", "responsive"),
-          full_width = FALSE,
-          font_size = 14)
- 
- symptom_table <-
-  measurments %>%
-  group_by(data.context.symptoms.0) %>%
-  summarise(freq = n_distinct(id)) %>%
-  arrange (-freq) %>% 
-  mutate(fraction=round((freq/sum(freq))*100,1))%>%
-mutate_all(na_if,"")
-```
-</div>
-<div style="float: right; width: 40%;">
+<!-- # ggplot(arrhythmia_table, aes(x=`Heart rhythm`, y=`%`, fill="#1e8d95")) + -->
+<!-- #   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label = `%`), vjust = -1, colour = "black") + ylab("Prevalence of arrhythmia's (%)") -->
+<!-- kable(arrhythmia_table) %>% -->
+<!--      kable_styling( -->
+<!--           bootstrap_options = c("hover", "condensed", "responsive"), -->
+<!--           full_width = FALSE, -->
+<!--           font_size = 14) -->
+
+<!--  symptom_table <- -->
+<!--   measurments %>% -->
+<!--   group_by(data.context.symptoms.0) %>% -->
+<!--   summarise(freq = n_distinct(id)) %>% -->
+<!--   arrange (-freq) %>%  -->
+<!--   mutate(fraction=round((freq/sum(freq))*100,1))%>% -->
+<!-- mutate_all(na_if,"") -->
+<!-- ``` -->
+<!-- </div> -->
+<!-- <div style="float: right; width: 40%;"> -->
 
 
-```{r, message=FALSE,warning=FALSE, echo=FALSE}
-
- 
-
-  
-names(symptom_table)[names(symptom_table) == "data.context.symptoms.0"] <- "Symptoms"
-names(symptom_table)[names(symptom_table) == "freq"] <- "Frequency"
-names(symptom_table)[names(symptom_table) == "fraction"] <- "%"
-
-kable(symptom_table) %>%
-      kable_styling(
-        bootstrap_options = c("hover", "condensed", "responsive"),
-        full_width = F,
-        font_size = 14)
+<!-- ```{r, message=FALSE,warning=FALSE, echo=FALSE} -->
 
 
 
-```
-</div>
 
-## NEW PLOTS
+<!-- names(symptom_table)[names(symptom_table) == "data.context.symptoms.0"] <- "Symptoms" -->
+<!-- names(symptom_table)[names(symptom_table) == "freq"] <- "Frequency" -->
+<!-- names(symptom_table)[names(symptom_table) == "fraction"] <- "%" -->
+
+<!-- kable(symptom_table) %>% -->
+<!--       kable_styling( -->
+<!--         bootstrap_options = c("hover", "condensed", "responsive"), -->
+<!--         full_width = F, -->
+<!--         font_size = 14) -->
+
+
+
+<!-- ``` -->
+<!-- </div> -->
 
 ```{r}
+#testblok
 
-plot_left_4_df <-
+plot_rhythm_symptom_correlation <-
    measurments %>% 
-    select(data.context.symptoms.0) %>% 
-    group_by(type=data.context.symptoms.0) %>% 
-    summarise(cnt=n()) %>% 
-    filter(!is.na(type)) %>% 
-    ungroup() %>% 
-    arrange(-cnt)
+    select(data.diagnosis.label.0, data.context.symptoms.0)  %>%
+    group_by(Rhythm=data.diagnosis.label.0,Symptoms = data.context.symptoms.0 ) %>% 
+    summarise(cnt=n())  %>%
+    ungroup()  %>% 
+    arrange(Symptoms)
+plot_rhythm_symptom_correlation[is.na(plot_rhythm_symptom_correlation)] <- 0
 
-ggplot(plot_left_4_df, aes(x="", y=cnt, fill=type)) +
-  geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +  theme_void() 
+ggplot(plot_rhythm_symptom_correlation, aes(Rhythm, Symptoms)) + geom_point(aes(size = cnt), colour = "#1e8d95") +theme_bw() + scale_size_continuous(range=c(2,20)) + geom_text(aes(label = cnt),colour="white") + xlab("Rhythm Symptom correlation") + theme(legend.position = "none",  axis.text.x = element_text(angle = 90, vjust=0.7))
+
 ```
 
+## Rhythm - Symptom table
 
-## TEST
-<div style="float: left; width: 50%;">
+```{r}
+plot_rhythm_symptom_correlation2 <-
+  measurments %>% 
+  select(data.diagnosis.label.0, data.context.symptoms.0)  %>%
+  group_by(Rhythm=data.diagnosis.label.0,Symptoms = data.context.symptoms.0 ) %>% 
+  summarise(cnt=n())  %>%
+  spread(Symptoms, cnt)
+plot_rhythm_symptom_correlation2[is.na(plot_rhythm_symptom_correlation2)] <- 0
+
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "V1"] <- "Blank"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "chest_pains"] <- "Chestpain"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "fatigue"] <- "Fatigue"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "lightheaded"] <- "Lightheaded"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "no_symptoms"] <- "No symptoms"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "other"] <- "Other"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "palpitations"] <- "Palpitations"
+names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) == "shortness_of_breath"] <- "Shortness of breath"
+
+
+
+kable(plot_rhythm_symptom_correlation2) %>%
+  kable_styling(
+    bootstrap_options = c("hover", "condensed", "responsive"),
+    full_width = F,
+    font_size = 14)
+
+```
+
+## Symptoms for  regular rhythms
 
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 sinus_rhythm <- as.character(c("sinus","increased HRV"))
@@ -1262,7 +1289,6 @@ symptoms_table_sinus <-
       mutate(fraction=round((freq/sum(freq))*100,1))%>%
 mutate_all(na_if,"")
   
-
 names(symptoms_table_sinus)[names(symptoms_table_sinus) == "data.context.symptoms.0"] <- "Symptoms"
 names(symptoms_table_sinus)[names(symptoms_table_sinus) == "freq"] <- "Frequency"
 names(symptoms_table_sinus)[names(symptoms_table_sinus) == "fraction"] <- "%"
@@ -1273,15 +1299,12 @@ kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms") %>%
         full_width = F,
         font_size = 14)
 
-
-
 ```
+## Symptoms for non regular rhythms
 
-</div>
+<div style="float: left; width: 50%;">
 
-<div style="float: right; width: 50%;">
-
-```{r, message=FALSE,warning=FALSE, echo=FALSE}
+```{r}
 non_AF <- c("extrasystoles_frequent","extrasystoles_isolated","tachycardia", "extrasystoles_big_episode","extrasystoles_trig_episode","extrasystoles_bigminy")
 symptoms_table_non_af <-
       measurments %>%
@@ -1296,18 +1319,15 @@ names(symptoms_table_non_af)[names(symptoms_table_non_af) == "data.context.sympt
 names(symptoms_table_non_af)[names(symptoms_table_non_af) == "freq"] <- "Frequency"
 names(symptoms_table_non_af)[names(symptoms_table_non_af) == "fraction"] <- "%"
 
-kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
+ kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
         font_size = 14)
-
-
 ```
 </div>
 
-##test 2
-
+<div style="float: right; width: 50%;">
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 
 AF_rhythms<-c("atrial_fibrillation","atrial_flutter")
@@ -1331,6 +1351,7 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
 
 
 ```
+</div>
 
 ## Prescription types and durations 
 
@@ -1480,15 +1501,15 @@ agg <-
 get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
                 height = 1000, save = T,file_name = 'sankey.html')
 
-htmltools::includeHTML("./sankey.html")
+#htmltools::includeHTML("./sankey.html")
+shiny::includeHTML("./sankey.html") 
 
-kable(agg) %>%
-      kable_styling(
-        bootstrap_options = c("hover", "condensed", "responsive"),
-        full_width = F,
-        font_size = 14)
-
-write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
+# kable(agg) %>%
+#       kable_styling(
+#         bootstrap_options = c("hover", "condensed", "responsive"),
+#         full_width = F,
+#         font_size = 14)
+#write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
 ```
 
 
@@ -1585,7 +1606,7 @@ kable(percent_quality_activity) %>%
 
 ## Individual plots
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE, results = "asis"}
 for(i in 1:length(UserID))
 {
   
@@ -1626,8 +1647,6 @@ motivation= round(sum((table(as.Date(df_window$data.measurement_timestamp))>=m_p
 
 #df_window$data.measurement_timestamp=as.Date(as.POSIXct((df_window$data.measurement_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
 
-
-
 p1 <- ggplot(df_window) +
           geom_point(aes(x=data.measurement_timestamp,
                    y=data.heartrate, color=data.indicator)) +
@@ -1646,11 +1665,10 @@ p1 <- ggplot(df_window) +
               color="grey90",
               alpha=0.05,
               inherit.aes = FALSE) 
-  
-  
-print(p1)  
+
+plot(p1)  
+ggsave(p1, file=paste(UserID[i],".png"))
 }
 ```
-
 
 
