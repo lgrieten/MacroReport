@@ -3,7 +3,7 @@ title: "Your experience with FibriCheck"
 author: "Fibricheck"
 date: "25/12/2021"
 #output:  html_document
-output: 
+output:
    ioslides_presentation:
     widescreen: true
     logo: FibriCheck.png
@@ -945,7 +945,7 @@ for(i in 1:length(UserID))
   Total_days = actual_prescription_days
 
   Total_days_motivation_met = sum(table(as.Date(df_window$data.measurement_timestamp))>=m_per_day)
-  compliance = round(100*sum(nrow(df_window))/(Total_days),2)
+  compliance = round(100*sum(nrow(df_window))/(Total_days*m_per_day),2)
   motivation= round(sum((table(as.Date(df_window$data.measurement_timestamp))>=m_per_day))*100/Total_days,2)
   
 summary <- data.frame(UserID[i],first_measurement, last_measurement, total_measurements, Total_days, actual_prescription_days, Total_days_motivation_met, compliance, motivation)
@@ -1669,8 +1669,9 @@ p1 <- ggplot(df_window) +
           scale_colour_manual(values = c("warning" = "#f09034", "urgent" = "#dc324a",
                                    "normal" = "#6bacb2","Quality" = "blue",
                                    "Symptoms Was Present"="black")) + 
-          geom_point(aes(x=data.measurement_timestamp,
-                         y=symptoms)) +
+          geom_point(aes(x=data.measurement_timestamp, 
+                         y=symptoms), shape=17 , fill = "lightgray",
+             color = "black", size = 3 ) + 
           xlab("Date/time") + ylab("Heart rate (BPM)") + ylim(30, 200)+ theme_minimal() +
           labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window), "Compliance",compliance, "Motivation", motivation)) +
           theme(legend.title =element_blank(),legend.position = "top", )
