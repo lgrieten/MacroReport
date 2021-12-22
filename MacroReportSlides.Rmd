@@ -6,10 +6,11 @@ date: "25/12/2021"
 output: 
    ioslides_presentation:
     widescreen: true
-    logo: logo_wp.png
-    css: slidestyles2.css
+    logo: FibriCheck.png
+    css: MacroReport.css
 runtime: shiny
 ---
+
 
 ```{r setup, include=FALSE}
 rm(list = ls())
@@ -68,6 +69,20 @@ library(DT)
 library(eeptools)
 library(svDialogs)
 library(knitr)
+
+```
+
+```{r}
+##### READ ME FIRST####
+
+#STEP 1: CHANGE TITLE/AUTHOR/DATE IN LINE 1
+#STEP 2: CHANGE VARIABLES IN CHUNK "INPUT VARIABLES" STARTING AT LINE 134
+#STEP 3: SET EVAL = TRUE IF YOU WANT TO EVALUATE PRESCRIPTIONS AND TRANSMISSIONS OF PATIENTS BETWEEN GROUPS
+      #- r load prescriptions dataset
+      #- UNCOMMENT: ## Plot the correlation between prescription duration and indication
+      #- UNCOMMENT: ## ## Where do my patients come from, and where do they go
+#STEP 4: SET THIS VARIABLE TO TRUE IF YOU WANT TO STORE THE INDIVIDUAL RECORDINGS IN PNG FORMAT IN THE FOLDER
+export_png <- FALSE
 
 ```
 
@@ -163,7 +178,7 @@ prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 Users_ID <- profile$id
 ```
 
-```{r load prescriptions dataset, eval = TRUE, echo=FALSE, message=FALSE}
+```{r load prescriptions dataset, eval = FALSE, echo=FALSE, message=FALSE}
 #load dataset of prescriptions
 groups <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_groups.csv", sep=",")
 database_prescriptions <- read.csv("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/20211202_database prescriptions.csv", sep=";")
@@ -817,7 +832,7 @@ plot_left_3_df <-
            ,wd=paste(min_date,max_date,sep='-'))
 
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements") + ggtitle("Amount of measurements on a weekly basis") + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements")  + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
 
 ```
 
@@ -1397,120 +1412,122 @@ kable(plot_prescriptions_duration) %>%
 
 
 
-## Plot the correlation between prescription duration and indication
+<!-- ## Plot the correlation between prescription duration and indication -->
 
-```{r eval = FALSE, message=FALSE, include=FALSE}
-
-
-prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
-plot_prescriptions_type <-
-   prescriptions %>% 
-    select(tags.0) %>% 
-    group_by(type=tags.0) %>% 
-    summarise(cnt=n()) %>% 
-    #filter(!is.na(type)) %>% 
-    #filter(type == prescription_types)%>%
-    ungroup() %>% 
-    arrange(-cnt)
-plot_prescriptions_type <- filter(plot_prescriptions_type, (type %in% prescription_types))
-
-ggplot(plot_prescriptions_type, aes(x=type, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Type of prescriptions") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_type$cnt)+30)
-
-identified_prescriptions <- sum(plot_prescriptions_type$cnt)
-total_prescriptions <- nrow(prescriptions)
-total_unidentifiedprescriptions <- total_prescriptions-identified_prescriptions
-Unidentified_prescriptions <- data.frame("NO TAG",total_unidentifiedprescriptions)
-names(Unidentified_prescriptions) <- c("type","cnt")
-plot_prescriptions_type <- rbind(plot_prescriptions_type, Unidentified_prescriptions)
-
-kable(plot_prescriptions_type) %>%
-      kable_styling(
-        bootstrap_options = c("hover", "condensed", "responsive"),
-        full_width = F,
-        font_size = 14)
+<!-- ```{r eval = FALSE, message=FALSE, include=FALSE} -->
 
 
-plot_correlation_prescriptions_duration_type <-
-   prescriptions %>% 
-    select(dur, tags.0)  %>%
-    group_by(duration=dur,tag = tags.0 ) %>% 
-    summarise(cnt=n())  %>%
-    #filter(!is.na(type)) %>% 
-    #filter(type == prescription_types)%>%
-    ungroup()  %>% 
-    arrange(duration)
+<!-- prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION")  -->
+<!-- plot_prescriptions_type <- -->
+<!--    prescriptions %>%  -->
+<!--     select(tags.0) %>%  -->
+<!--     group_by(type=tags.0) %>%  -->
+<!--     summarise(cnt=n()) %>%  -->
+<!--     #filter(!is.na(type)) %>%  -->
+<!--     #filter(type == prescription_types)%>% -->
+<!--     ungroup() %>%  -->
+<!--     arrange(-cnt) -->
+<!-- plot_prescriptions_type <- filter(plot_prescriptions_type, (type %in% prescription_types)) -->
 
-plot_correlation_prescriptions_duration_type <- filter(plot_correlation_prescriptions_duration_type, (tag %in% prescription_types))
-plot_correlation_prescriptions_duration_type$duration <- as.factor(plot_correlation_prescriptions_duration_type$duration)
+<!-- ggplot(plot_prescriptions_type, aes(x=type, y=cnt, fill="#1e8d95")) + -->
+<!--   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Type of prescriptions") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_type$cnt)+30) -->
 
-ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_point(aes(size = cnt), colour = "#1e8d95") + theme_bw() + xlab("") + ylab("") + scale_size_continuous(range=c(3,20)) + geom_text(aes(label = cnt),colour="white") + xlab("Prescription duration") 
+<!-- identified_prescriptions <- sum(plot_prescriptions_type$cnt) -->
+<!-- total_prescriptions <- nrow(prescriptions) -->
+<!-- total_unidentifiedprescriptions <- total_prescriptions-identified_prescriptions -->
+<!-- Unidentified_prescriptions <- data.frame("NO TAG",total_unidentifiedprescriptions) -->
+<!-- names(Unidentified_prescriptions) <- c("type","cnt") -->
+<!-- plot_prescriptions_type <- rbind(plot_prescriptions_type, Unidentified_prescriptions) -->
 
-```
-
-## Where do my patients come from, and where do they go
-
-The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format. 
-
-```{r, eval = TRUE, message=FALSE, echo=FALSE}
-# 1. each user, arrange the data by the timestamp
-# 2. create a sequence of numbers from 1:N (N=the number of flows each user had)
-# 3. create the next step of the user using the lead() with step=1
-# 4. aggrate all the flows made by all the users
-# 5. create a dummy flow which called "out". each user which ended the flow will have as a final step "out"
-#data_sankey_prescriptions2 <- filter(data_sankey_prescriptions, group_id != "5c90a3294cedfd0006206e08")
-
-
-agg <-
-    data_sankey_prescriptions %>%
-    arrange(user_id, creation_timestamp) %>%
-    group_by(user_id) %>%
-    mutate(
-        type=gsub(' ','_',grouptype),
-        from = 1:n(),
-        next_type = lead(type, 1),
-        to = lead(from, 1)
-    ) %>%
-    ungroup() %>%
-    group_by(from, to, type, next_type)%>%
-    summarise(cnt = n_distinct(user_id)) %>%
-    ungroup() %>%
-    mutate(to = ifelse(is.na(to), from + 1, to),
-           next_type = ifelse(is.na(next_type), 'out', next_type))
+<!-- kable(plot_prescriptions_type) %>% -->
+<!--       kable_styling( -->
+<!--         bootstrap_options = c("hover", "condensed", "responsive"), -->
+<!--         full_width = F, -->
+<!--         font_size = 14) -->
 
 
+<!-- plot_correlation_prescriptions_duration_type <- -->
+<!--    prescriptions %>%  -->
+<!--     select(dur, tags.0)  %>% -->
+<!--     group_by(duration=dur,tag = tags.0 ) %>%  -->
+<!--     summarise(cnt=n())  %>% -->
+<!--     #filter(!is.na(type)) %>%  -->
+<!--     #filter(type == prescription_types)%>% -->
+<!--     ungroup()  %>%  -->
+<!--     arrange(duration) -->
 
-# sankey plot function
-# the function have 7 variables
-# 1. df - holds data in a data.frame format
-# 2. min_num_users - the minimum number of users you wish to had in each flow
-# 3. max_num_steps - the maximum number of flows you wish to get
-# 4. width - the plot width
-# 5. height - the plot height
-# 6. save - an option to save the plot as HTML file. Deafult set to false
-# 7 file_name - the name of the saved HTML file
+<!-- plot_correlation_prescriptions_duration_type <- filter(plot_correlation_prescriptions_duration_type, (tag %in% prescription_types)) -->
+<!-- plot_correlation_prescriptions_duration_type$duration <- as.factor(plot_correlation_prescriptions_duration_type$duration) -->
+
+<!-- ggplot(plot_correlation_prescriptions_duration_type, aes(duration, tag)) + geom_point(aes(size = cnt), colour = "#1e8d95") + theme_bw() + xlab("") + ylab("") + scale_size_continuous(range=c(3,20)) + geom_text(aes(label = cnt),colour="white") + xlab("Prescription duration")  -->
+
+<!-- ``` -->
+
+<!-- ## Where do my patients come from, and where do they go -->
+
+<!-- The following plot is a Sankey plot which shows the progress of your patients within the FibriCheck ecosystem. They start on the left side in a specific "group" and move then to the right side in the group where they ended. The table below visualises the SankeyPlot in a table format.  -->
+
+<!-- ```{r, eval = FALSE, message=FALSE, echo=FALSE} -->
+<!-- # 1. each user, arrange the data by the timestamp -->
+<!-- # 2. create a sequence of numbers from 1:N (N=the number of flows each user had) -->
+<!-- # 3. create the next step of the user using the lead() with step=1 -->
+<!-- # 4. aggrate all the flows made by all the users -->
+<!-- # 5. create a dummy flow which called "out". each user which ended the flow will have as a final step "out" -->
+<!-- #data_sankey_prescriptions2 <- filter(data_sankey_prescriptions, group_id != "5c90a3294cedfd0006206e08") -->
 
 
-#amount_data <- as.numeric(count(data))
-# run the get_sankey_plot. you can change any of the params, beside the "agg"
+<!-- agg <- -->
+<!--     data_sankey_prescriptions %>% -->
+<!--     arrange(user_id, creation_timestamp) %>% -->
+<!--     group_by(user_id) %>% -->
+<!--     mutate( -->
+<!--         type=gsub(' ','_',grouptype), -->
+<!--         from = 1:n(), -->
+<!--         next_type = lead(type, 1), -->
+<!--         to = lead(from, 1) -->
+<!--     ) %>% -->
+<!--     ungroup() %>% -->
+<!--     group_by(from, to, type, next_type)%>% -->
+<!--     summarise(cnt = n_distinct(user_id)) %>% -->
+<!--     ungroup() %>% -->
+<!--     mutate(to = ifelse(is.na(to), from + 1, to), -->
+<!--            next_type = ifelse(is.na(next_type), 'out', next_type)) -->
 
-#get_sankey_plot(agg, min_num_users = 1, max_num_steps = 2, width = 1400, 
- #               height = 700, save = T, file_name = 'sankyplot_1_min_users_10_steps.html')
 
 
-get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900, 
-                height = 1000, save = T,file_name = 'sankey.html')
+<!-- # sankey plot function -->
+<!-- # the function have 7 variables -->
+<!-- # 1. df - holds data in a data.frame format -->
+<!-- # 2. min_num_users - the minimum number of users you wish to had in each flow -->
+<!-- # 3. max_num_steps - the maximum number of flows you wish to get -->
+<!-- # 4. width - the plot width -->
+<!-- # 5. height - the plot height -->
+<!-- # 6. save - an option to save the plot as HTML file. Deafult set to false -->
+<!-- # 7 file_name - the name of the saved HTML file -->
 
-#htmltools::includeHTML("./sankey.html")
-shiny::includeHTML("./sankey.html") 
 
-# kable(agg) %>%
-#       kable_styling(
-#         bootstrap_options = c("hover", "condensed", "responsive"),
-#         full_width = F,
-#         font_size = 14)
-#write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
-```
+<!-- #amount_data <- as.numeric(count(data)) -->
+<!-- # run the get_sankey_plot. you can change any of the params, beside the "agg" -->
+
+<!-- #get_sankey_plot(agg, min_num_users = 1, max_num_steps = 2, width = 1400,  -->
+<!--  #               height = 700, save = T, file_name = 'sankyplot_1_min_users_10_steps.html') -->
+
+
+<!-- get_sankey_plot(agg, min_num_users = 1, max_num_steps = 3, width = 900,  -->
+<!--                 height = 1000, save = T,file_name = 'sankey.html') -->
+
+<!-- #htmltools::includeHTML("./sankey.html") -->
+<!-- shiny::includeHTML("./sankey.html")  -->
+
+<!-- # kable(agg) %>% -->
+<!-- #       kable_styling( -->
+<!-- #         bootstrap_options = c("hover", "condensed", "responsive"), -->
+<!-- #         full_width = F, -->
+<!-- #         font_size = 14) -->
+<!-- #write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" ) -->
+<!-- ``` -->
+
+
 
 
 ## Signal Quality Analysis
@@ -1609,7 +1626,6 @@ kable(percent_quality_activity) %>%
 ```{r echo=FALSE, message=FALSE, warning=FALSE, results = "asis"}
 for(i in 1:length(UserID))
 {
-  
 df_window = subset(measurments,userIds.0 == UserID[i])
 df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
 df_window$symptoms <- as.numeric(ifelse((df_window$data.context.symptoms.sym == "NA")|(df_window$data.context.symptoms.sym == "0"),"0", "200"))
@@ -1659,6 +1675,8 @@ p1 <- ggplot(df_window) +
           labs(color='Heart rhythm', title= paste("User ID:",UserID[i], "#rec:",nrow(df_window), "Compliance",compliance, "Motivation", motivation)) +
           theme(legend.title =element_blank(),legend.position = "top", )
 
+cat("\n\n## UserId = ", UserID[i], "\n\n")
+
  #### REPEAT PLOT####
   rect <- data.frame(xmin=df_prescription$activated_timestamp2, xmax=df_prescription$end_date, ymin=-Inf, ymax=Inf)
   p1 <- p1 + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
@@ -1666,9 +1684,14 @@ p1 <- ggplot(df_window) +
               alpha=0.05,
               inherit.aes = FALSE) 
 
-plot(p1)  
-ggsave(p1, file=paste(UserID[i],".png"))
+print(p1)
+
+    if(export_png == TRUE)
+    {
+      ggsave(p1, file=paste(UserID[i],".png"))
+    }
 }
 ```
+
 
 
