@@ -18,11 +18,11 @@ slides > slide {
 /* Title slide title */
 .title-slide hgroup h1 {
   font-family: "Roboto", sans-serif;
-  font-size: 80px;
+  font-size: 60px;
   font-weight: 100;
   line-height: 1.1;
   letter-spacing: -3px;
-  color: #1C1C1C;
+  color: #1e8d95;
   position: relative;
   left: -6px;
 }
@@ -30,17 +30,17 @@ slides > slide {
 /* Title slide subtitle */
 .title-slide hgroup h2 {
   font-family: Roboto, sans-serif;
-  font-size: 60px;
-  color: #585858;
+  font-size: 40px;
+  color: #94b0b3;
   font-weight: inherit;
 }
 
 /* Title slide paragraph */
 .title-slide hgroup p {
   font-family: Roboto, sans-serif;
-  font-size: 40px;
+  font-size: 30px;
   font-weight: 250;
-  color: #E6E6E6;
+  color: #1e8d95;
   line-height: 1.3;
   margin-top: 2em;
 }
@@ -48,21 +48,25 @@ slides > slide {
 /* Paragraph text */
 p {
   font-family: "Open sans", Serif;
-  color: #003669;
+  color: #94b0b3;
+  font-size: 15px;
+
 }
 
 /* Unordered lists */
 
 ul {
   font-family: "Open sans", sans-serif;
-  color: #003669;
+  color: #94b0b3;
+  font-size: 15px;
 }
 
 /* Ordered lists */
 
 li {
   font-family: "Open sans", sans-serif;
-  color: #003669;
+  color: #94b0b3;
+  font-size: 15px;
 }
 
 /* Background colour for code blocks */
@@ -93,14 +97,14 @@ li {
 
 h1 {
   font-family: Roboto, sans-serif;
-  color: #1C1C1C;
+  color: #1e8d95;
   font-weight: 200;
   font-size: 80px;
 }
 
 h2 {
   font-family: Roboto, sans-serif;
-  color: white;
+  color: #1e8d95;
   font-weight: 200;
   font-size: 60px;
   line-height: 80px;
@@ -108,7 +112,7 @@ h2 {
 
 h3 {
   font-family: Roboto, sans-serif;
-  color: white;
+  color: #1e8d95;
   font-weight: 400;
 }
 

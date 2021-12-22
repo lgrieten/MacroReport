@@ -577,7 +577,7 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
 ```
 </div>
 ## Phone performance
-Distribution of insufficient quality by phone manufacturer
+Amount of measurements per phone and the distribution of insufficient quality by phone manufacturer
 
 ```{r }
 
@@ -749,9 +749,9 @@ rbind(` AF patients` = paste(nrow(list_user_id_AF),"of",nrow(profile),"patients"
 ```
 
 ## Prescription activation information
-Time series that plots the amount of prescriptions versus the date
+Oerview in time when patients activated their prescription.
 
-<div style="float: left; width: 60%;">
+<div style="float: left; width: 70%;">
 
 
 ```{r echo = FALSE}
@@ -766,12 +766,12 @@ plot_left_2_df <-
               ,cnt__=round(cnt/sum(cnt),2))
 
 ggplot(plot_left_2_df, aes(x=date, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations") + ggtitle("Activations over time")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Date") + ylab("# activations")
 ```
 
 </div>
 
-<div style="float: right; width: 20%;">
+<div style="float: right; width: 30%;">
 
 ```{r echo = FALSE}
 peck_hour <- 
@@ -795,7 +795,8 @@ rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange
 
 </div>
 
-## Measurement behavior - measurement intensity
+## Measurement intensity 
+
 Distribution over time in which weeks measurements were taken. 
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
@@ -822,9 +823,9 @@ ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
 
 
 ## Measurement behavior
-Distribution of measurements taken throughout the day. Note that the time is GMT. 
+The timepoints during the day on which measurements are taken.Note that the time is GMT. 
 
-<div style="float: left; width: 60%;">
+<div style="float: left; width: 70%;">
 
 
 ```{r}
@@ -853,7 +854,7 @@ ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#1e8d95")) +
 ```
 </div>
 
-<div style="float: right; width: 20%;">
+<div style="float: right; width: 25%;">
 
 ```{r, message=FALSE, echo=FALSE}
 max_measures_per_day <- 
@@ -880,12 +881,17 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
 
 </div>
 
-
-
 ## User compliance and motivation
-- Users are asked to take `r m_per_day` per day
+
+<div style="float: right; width: 30%;">
+
+- Users are asked to take `r m_per_day` measurements per day
 - Compliance is total performend measurements / total expected measurements
 - Motivation is % of days that the patient actually performed `r m_per_day` per day
+
+</div>
+
+<div style="float: left; width: 50%;">
 
 ```{r}
 MOTIVATION_DATA = NULL
@@ -932,7 +938,7 @@ MOTIVATION_DATA <- rbind(MOTIVATION_DATA,summary)
 }
 ```
 
-
+</div>
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 ##NEW SECTION
@@ -996,41 +1002,45 @@ ggarrange(tt1, tt2, nrow = 2)
 
 ```
 
-## User compliance
+<!-- ## User compliance -->
 
-```{r}
-#COMPLIANCE PLOT
+<!-- ```{r} -->
+<!-- #COMPLIANCE PLOT -->
 
-compliance_plot <-
-  MOTIVATION_DATA %>%
-  group_by(UserID.i.) %>%
-  mutate(cnt_= compliance, cnt__=round(cnt_), compliance = ifelse(cnt__<10,'<10%'
-                                     ,ifelse(cnt__<20,'10%-20%'
-                                             ,ifelse(cnt__<30,'20%-30%'
-                                                     ,ifelse(cnt__<40,'30%-40%'
-                                                             ,ifelse(cnt__<50,'40%-50%'
-                                                                      ,ifelse(cnt__<60,'50%-60%'
-                                                                               ,ifelse(cnt__<70,'60%-70%'
-                                                                                        ,ifelse(cnt__<80,'70%-80%'
-                                                                                                 ,ifelse(cnt__<90,'80%-90%'
-                                                                                                          ,ifelse(cnt__<100,'90%-100%'
-                                                                                                                   ,ifelse(cnt__<150,'100% -150%'
-                                                                                                                           ,ifelse(cnt__<200,'150%-200%'
-                                                                                                                                   ,ifelse(cnt__>200,'more then
-200%',"/"))))))))))))))                                                                                                                                                             
+<!-- compliance_plot <- -->
+<!--   MOTIVATION_DATA %>% -->
+<!--   group_by(UserID.i.) %>% -->
+<!--   mutate(cnt_= compliance, cnt__=round(cnt_), compliance = ifelse(cnt__<10,'<10%' -->
+<!--                                      ,ifelse(cnt__<20,'10%-20%' -->
+<!--                                              ,ifelse(cnt__<30,'20%-30%' -->
+<!--                                                      ,ifelse(cnt__<40,'30%-40%' -->
+<!--                                                              ,ifelse(cnt__<50,'40%-50%' -->
+<!--                                                                       ,ifelse(cnt__<60,'50%-60%' -->
+<!--                                                                                ,ifelse(cnt__<70,'60%-70%' -->
+<!--                                                                                         ,ifelse(cnt__<80,'70%-80%' -->
+<!--                                                                                                  ,ifelse(cnt__<90,'80%-90%' -->
+<!--                                                                                                           ,ifelse(cnt__<100,'90%-100%' -->
+<!--                                                                                                                    ,ifelse(cnt__<150,'100% -150%' -->
+<!--                                                                                                                            ,ifelse(cnt__<200,'150%-200%' -->
+<!--                                                                                                                                    ,ifelse(cnt__>200,'more then -->
+<!-- 200%',"/"))))))))))))))                                                                                                                                                              -->
 
-compliance_plot_total<-
-    compliance_plot %>%
-    group_by(compliance) %>%
-    summarise(cnt=n())
- 
-ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients") 
+<!-- compliance_plot_total<- -->
+<!--     compliance_plot %>% -->
+<!--     group_by(compliance) %>% -->
+<!--     summarise(cnt=n()) -->
+
+<!-- ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) + -->
+<!--   geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients")  -->
 
 
-```
+<!-- ``` -->
 
-## Amount of measurement per subject per age category
+## Average amount of measurements 
+
+Average amount of measurements per age category. 
+
+<div style="float: left; width: 50%;">
 
 ```{r}
 plot_right_4_df_a <-
@@ -1069,8 +1079,10 @@ plot_right_4_df <- inner_join(plot_right_4_df_a,plot_right_4_df_b)
 
 
 ggplot(plot_right_4_df, aes(x=age, y=per_user_cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white") + ggtitle("Average amount of measurement per subject per age group") + ylab("Average amount of measurements")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + geom_text(aes(label = per_user_cnt), vjust = 1.5, colour = "white") + ylab("Average amount of measurements")
 ```
+</div>
+<div style="float: right; width: 30%;">
 
 ```{r, message=FALSE, echo=FALSE}
 max_compliance <- as.vector(compliance_plot%>% 
@@ -1095,8 +1107,9 @@ rbind(`Most compliant user (%):` = paste (as.character(max_compliance),"%", sep 
         full_width = T,
         font_size = 14)
 ```
-
-## Diagnostics
+</div>
+## Diagnostics overview
+Overview metrics on diagnostic results. 
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -1148,13 +1161,15 @@ hr_non_AF <-
     measurments %>% 
     filter(data.diagnosis.label.0 != "atrial_fibrillation")
 mean_HR_non_AF = round(mean(hr_non_AF$data.heartrate))
-  
 
 
-
-rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrillation, `Amount of people with other cardiac arrhythmia's:` = people_with_other_cardiac_arrhythmias, `Average heart rate of non-AF people (bpm):` = mean_HR_non_AF
-      ,`Average heart rate during AF (bpm):` = mean_HR_AF,`Measurements with symptoms (%):` = scales::percent(Total_measurements_with_symptoms/as.numeric(total_number_of_measurements))
-      ,`AF-measurements with symptoms:` = total_af_measurements - af_measurements_nosymptoms
+rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrillation
+      ,`Amount of atrial fibrillation measurements ` = total_af_measurements
+      ,`Amount of people with other cardiac arrhythmia's:` = people_with_other_cardiac_arrhythmias
+      ,`Average heart rate of non-AF people (bpm):` = mean_HR_non_AF
+      ,`Average heart rate during AF (bpm):` = mean_HR_AF
+      ,`Measurements with symptoms (%):` = scales::percent(Total_measurements_with_symptoms/as.numeric(total_number_of_measurements))
+      ,`AF-measurements with symptoms:` = scales::percent(1-(af_measurements_nosymptoms/total_af_measurements))
       ,`Most common symptom:` = most_common
       ) %>%
     kable() %>%
@@ -1163,27 +1178,20 @@ rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrilla
         full_width = TRUE,
         font_size = 14)
 
+```
 
-hr_AF <- 
-  measurments %>% 
-  filter(data.diagnosis.label.0== "atrial_fibrillation")
+## Heart rhythm findings
 
-mean_HR_AF = round(mean(hr_AF$data.heartrate))
+<div style="float: left; width: 50%;">
 
-hr_non_AF <- 
-      measurments %>% 
-      filter(data.diagnosis.label.0 != "atrial_fibrillation")
-  mean_HR_non_AF = round(mean(hr_non_AF$data.heartrate))
-  
-ggplot(arrhythmia_table, aes(x="", y=Frequency, fill=`Heart rhythm`)) +
-  geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +  theme_void() 
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
 
- kable(arrhythmia_table) %>%
+# ggplot(arrhythmia_table, aes(x=`Heart rhythm`, y=`%`, fill="#1e8d95")) +
+#   geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label = `%`), vjust = -1, colour = "black") + ylab("Prevalence of arrhythmia's (%)")
+kable(arrhythmia_table) %>%
      kable_styling(
           bootstrap_options = c("hover", "condensed", "responsive"),
           full_width = FALSE,
-          position = "float_left",
           font_size = 14)
  
  symptom_table <-
@@ -1193,6 +1201,14 @@ ggplot(arrhythmia_table, aes(x="", y=Frequency, fill=`Heart rhythm`)) +
   arrange (-freq) %>% 
   mutate(fraction=round((freq/sum(freq))*100,1))%>%
 mutate_all(na_if,"")
+```
+</div>
+<div style="float: right; width: 40%;">
+
+
+```{r, message=FALSE,warning=FALSE, echo=FALSE}
+
+ 
 
   
 names(symptom_table)[names(symptom_table) == "data.context.symptoms.0"] <- "Symptoms"
@@ -1203,14 +1219,16 @@ kable(symptom_table) %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
-        position = "float_right",
         font_size = 14)
 
- 
+
 
 ```
+</div>
 
-```{r, message=FALSE,warning=FALSE, echo=FALSE}
+## NEW PLOTS
+
+```{r}
 
 plot_left_4_df <-
    measurments %>% 
@@ -1224,9 +1242,11 @@ plot_left_4_df <-
 ggplot(plot_left_4_df, aes(x="", y=cnt, fill=type)) +
   geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0) +  theme_void() 
-
-
 ```
+
+
+## TEST
+<div style="float: left; width: 50%;">
 
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 sinus_rhythm <- as.character(c("sinus","increased HRV"))
@@ -1257,6 +1277,10 @@ kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms") %>%
 
 ```
 
+</div>
+
+<div style="float: right; width: 50%;">
+
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 non_AF <- c("extrasystoles_frequent","extrasystoles_isolated","tachycardia", "extrasystoles_big_episode","extrasystoles_trig_episode","extrasystoles_bigminy")
 symptoms_table_non_af <-
@@ -1280,6 +1304,9 @@ kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
 
 
 ```
+</div>
+
+##test 2
 
 ```{r, message=FALSE,warning=FALSE, echo=FALSE}
 
@@ -1305,9 +1332,54 @@ kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
 
 ```
 
-## Prescription types that are issued
+## Prescription types and durations 
+
+<div style="float: left; width: 60%;">
+
+```{r, message=FALSE, echo=FALSE}
+
+plot_prescriptions_duration <-
+   prescriptions %>% 
+    select(dur) %>% 
+    group_by(type=dur) %>% 
+    summarise(cnt=n()) %>% 
+    #filter(!is.na(type)) %>% 
+    #filter(type == prescription_types)%>%
+    ungroup() %>% 
+    arrange(type)
+
+plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
+  
+
+ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
+  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration (days)") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type) + ggtitle("Distribution of type of prescriptions provided ")
+
+
+```
+</div>
+<div style="float: right; width: 30%;">
+
+```{r}
+
+names(plot_prescriptions_duration)[names(plot_prescriptions_duration) == "cnt"] <- "Amount"
+names(plot_prescriptions_duration)[names(plot_prescriptions_duration) == "type"] <- " duration"
+
+
+
+kable(plot_prescriptions_duration) %>%
+      kable_styling(
+        bootstrap_options = c("hover", "condensed", "responsive"),
+        full_width = F,
+        font_size = 14)
+```
+</div>
+
+
+
+## Plot the correlation between prescription duration and indication
 
 ```{r eval = FALSE, message=FALSE, include=FALSE}
+
 
 prescription_types <- c("PATIENT_REQUEST","NEW_COMPLAINTS","HIGH_RISK","POST_ABLATION","OTHER","LASTING_COMPLAINTS","POST_CRYPTOGENIC_STROKE","POST_CARDIOVERSION") 
 plot_prescriptions_type <-
@@ -1337,37 +1409,7 @@ kable(plot_prescriptions_type) %>%
         full_width = F,
         font_size = 14)
 
-```
 
-```{r, message=FALSE, echo=FALSE}
-
-plot_prescriptions_duration <-
-   prescriptions %>% 
-    select(dur) %>% 
-    group_by(type=dur) %>% 
-    summarise(cnt=n()) %>% 
-    #filter(!is.na(type)) %>% 
-    #filter(type == prescription_types)%>%
-    ungroup() %>% 
-    arrange(type)
-
-plot_prescriptions_duration$type <- as.factor(plot_prescriptions_duration$type)
-  
-
-ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
-  geom_bar(stat="identity", fill = "#1e8d95"  )+theme_minimal() + theme(legend.position = "none",  axis.text.x = element_text(angle = 45, vjust=0.7)) + geom_text(aes(label = cnt), vjust = -1, colour = "black") + xlab("Prescription duration (days)") + ylab("Amount of prescriptions") + ylim(0, max(plot_prescriptions_duration$cnt)+30) + scale_x_discrete(limits = plot_prescriptions_duration$type) + ggtitle("Distribution of type of prescriptions provided ")
-
-kable(plot_prescriptions_duration) %>%
-      kable_styling(
-        bootstrap_options = c("hover", "condensed", "responsive"),
-        full_width = F,
-        font_size = 14)
-
-```
-
-## Plot the correlation beetwen prescription duration and indication
-
-```{r eval = FALSE, message=FALSE, include=FALSE}
 plot_correlation_prescriptions_duration_type <-
    prescriptions %>% 
     select(dur, tags.0)  %>%
@@ -1451,6 +1493,7 @@ write.csv(agg,"/Users/larsgrieten/desktop/agg.csv" )
 
 
 ## Signal Quality Analysis
+Recorded insufficient signal quality per age category. The average FibriCheck benchmark is around ±8%. 
 
 ```{r}
 measurerement_profiles_1 <-
@@ -1466,7 +1509,6 @@ measurerement_profiles_1 <-
                                                        ,ifelse(age<70,'60-70','70-80')))))), cnt= n()) %>%
   group_by(userIds.0, age) %>%
   summarise(n()) 
-  
   
 
 measurerement_profiles_2 <-
@@ -1495,6 +1537,7 @@ ggplot(measurerement_profiles_fin, aes(x=age, y=mean_Q, fill="#1e8d95")) +
 
 
 ## Measurement attempts
+<div style="float: left; width: 50%;">
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 # TABULATE MEASUREMENT ATTEMPTS PER USER AND MEASUREMENT
@@ -1514,6 +1557,8 @@ kable(meas_attempt_measurement_subset) %>%
         full_width = F,
         font_size = 14)
 ```
+</div>
+<div style="float: left; width: 50%;">
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
 
@@ -1536,7 +1581,7 @@ kable(percent_quality_activity) %>%
         font_size = 14)
 
 ```
-
+</div>
 
 ## Individual plots
 
