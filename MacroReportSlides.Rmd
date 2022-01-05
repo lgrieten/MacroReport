@@ -8,7 +8,7 @@ output:
     widescreen: true
     logo: FibriCheck.png
     css: MacroReport.css
-runtime: shiny
+#runtime: shiny
 ---
 
 
@@ -16,6 +16,7 @@ runtime: shiny
 rm(list = ls())
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
 
+#remotes::install_github('rstudio/rmarkdown', upgrade = TRUE)
 if(!require(prettydoc)) install.packages('prettydoc')
 if(!require(readxl)) install.packages('readxl')
 if(!require(knitr)) install.packages('knitr')
@@ -241,10 +242,11 @@ for(i in 1:nrow(measurments))
 ## Disclaimer
 - All data generated here is pseudominized
 - All data is based on patient generated data, the measurements, symptoms, demographics and medical history
-- This report is designed to give you an insight on the entire population you manage with FibriCheck. 
+- This report is designed to give you an insight on the selected population you manage with FibriCheck. 
+- This report is based on input from our partners and can be improved based on your feedback. Share your ideas to support@fibricheck.com
 
 ## High level data overview
-The following table shows general metrics calculated out of your dataset. 
+The following table shows general metrics calculated from your dataset. 
 
 ```{r Population metrics, echo=FALSE, message=FALSE}
 # NUMBER OF PARTICIPANTS
@@ -391,7 +393,7 @@ rbind(`Number of participants` = glue::glue('{scales::comma(number_of_participan
 ```
 
 ## Demography calculations 
-Distribution of genders
+The following section addresses data related to the background of the enrolled participants. Data is coming from the gender.
 
 <div style="float: left; width: 60%;">
 
@@ -410,7 +412,8 @@ plot_left_1_df <-
 
 ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
   geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = total), position = position_stack(vjust = 0.5), color = "white", size=6)
+  coord_polar("y", start=0) +  theme_void() + scale_fill_manual(values=c("#1e8d95", "#ffa786")) + geom_text(aes(label = total), position = position_stack(vjust = 0.5), color = "white", size=6) + theme(legend.text=element_text(size=12))
+
 ```
 
 </div>
@@ -418,10 +421,10 @@ ggplot(plot_left_1_df, aes(x="", y=cnt, fill=gender)) +
 <div style="float: right; width: 40%;">
 
 ```{r}
-rbind(`Total # patients:` = nrow(profile)
+rbind(`Total number of patients:` = nrow(profile)
       ,`Percentage men:` = percentage_men
-      ,`Avg age man:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
-      ,`Avg age women:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['avg']],1)
+      ,`Avg age men:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['avg']],1)
+      ,`Avg age female:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['avg']],1)
       ,`Oldest male participant:` = round(plot_left_1_df[plot_left_1_df$gender=='male',][['oldest']],1)
       ,`Oldest female participant:` = round(plot_left_1_df[plot_left_1_df$gender!='male',][['oldest']],1)
       ) %>%
@@ -435,7 +438,7 @@ rbind(`Total # patients:` = nrow(profile)
 
 ## Age distribution
 
-The distribution of age groups amongst your patients. 
+The following section addresses data related to the background of the enrolled participants. Data is coming from the registered age.
 
 <div style="float: left; width: 70%;">
 
@@ -466,7 +469,7 @@ plot_right_1_df <- plot_right_1_df[order(plot_right_1_df$age),]
 
 
 ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("# subjects")  + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + ylim(0,(max(plot_right_1_df$cnt)+5)) + xlab("Age groups") + ylab("# subjects") + geom_text(aes(label = cnt), vjust = -0.5, colour = "#1e8d95")
 
 ```
 </div>
@@ -475,7 +478,7 @@ ggplot(plot_right_1_df, aes(x=age, y=cnt, fill="#1e8d95")) +
 <div style="float: right; width: 30%;">
 
 ```{r}
-rbind(`Total number of participants:` = number_of_participants
+rbind(`Total number of patients:` = number_of_participants
       ,`Average age:` = average_age
       ,`Participants >40 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('40-50','50-60','60-70','70-80','>80')]))
       ,`Participants >50 years:` = scales::percent(sum(plot_right_1_df$cnt__[plot_right_1_df$age %in% c('50-60','60-70','70-80','>80')]))
@@ -489,14 +492,14 @@ rbind(`Total number of participants:` = number_of_participants
         full_width = F,
         font_size = 14)
 
-
-
 ```
 </div>
 
 ## Country distribution
+
 The countries where your patients came from. 
-<div style="float: left; width: 60%;">
+
+<div style="float: left; width: 70%;">
 
 ```{r Country Analysis, echo=FALSE}
 
@@ -537,6 +540,7 @@ rbind(`Country with most users:`= most_popular_country,`Total countries:` = tot_
 </div>
 
 ## Phone distribution
+
 An overview of which types of smartphones your patients use. 
 
 <div style="float: left; width: 60%;">
@@ -592,6 +596,7 @@ rbind(`Most popular device:`= most_popular_device,`Percentage iOS:` = perc_ios, 
 ```
 </div>
 ## Phone performance
+
 Amount of measurements per phone and the distribution of insufficient quality by phone manufacturer
 
 ```{r }
@@ -607,17 +612,17 @@ plost_insuffqual <-
         mutate(insuff_q = round((quality/total)*100,1))
 
 o1 <- ggplot(plost_insuffqual, aes(x=device, y=insuff_q, fill="#1e8d95")) + 
-     geom_bar(stat="identity", fill = "#3b7bdb")+theme_minimal() +
-     theme(legend.position = "none") +
+     geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() +
+     theme(legend.position = "none") + ylim(0,(max(plost_insuffqual$insuff_q)+50))+
      xlab("Device manufacturers") +
-     ylab("% of insufficient quality") +  
-     geom_text(aes(label = insuff_q), vjust = 1.5, colour = "white")
+     ylab("% of insuff. quality") +  
+     geom_text(aes(label = insuff_q), vjust = -0.5, colour = "#1e8d95")
 
 o2 <-  ggplot(plost_insuffqual, aes(x=device, y=total, fill="#1e8d95")) + 
      geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() +
-     theme(legend.position = "none") +
-     ylab("Amount of measurements taken") +  
-     geom_text(aes(label = total), vjust = 1.5, colour = "white")
+     theme(legend.position = "none") + ylim(0,(max(plost_insuffqual$total)+50))+
+     ylab("# of measurements") +  
+     geom_text(aes(label = total), vjust = -0.5, colour = "#1e8d95")
 
 ggarrange(o2, o1, nrow = 2)
 
@@ -626,7 +631,11 @@ ggarrange(o2, o1, nrow = 2)
 
 
 ## Medical History
-The following table shows the medical history information obtained from your patient population
+- When users have performed their first measurement they are prompted with a screen that allows them to enter a questionnaire. 
+- This questionnaire consists of a set of questions that relate to cardiovascular risk factors.
+- The questionnaire is optional and participants can skip these questions if they want.
+- The table below shows a high-level overview of the cardiovascular risk profile of this population
+
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -676,7 +685,10 @@ medical_history<-
       diabetes<- sum(data$custom_fields.diabetes, na.rm=TRUE)
       bloodthinner<- sum(data$custom_fields.bloodThinner, na.rm=TRUE)
       blank_rows <- sum(rowSums(is.na(data))>2)
-      filled_in <-nrow(data) - blank_rows    
+      filled_in <-nrow(data) - blank_rows
+      filled_in_pct <- round(percent(filled_in/nrow(profile)),3)
+      blank_in_pct <- round(percent(blank_rows/nrow(profile)),3)
+
       
       History.df <- data.frame(AF_knowledge,HF,AD,AF_history,stroke,hypertension,diabetes,bloodthinner) 
       
@@ -691,8 +703,8 @@ rbind(` Total` = paste(nrow(profile),"patients"),
       ` History of hypertension` = hypertension,
       ` History of Stroke` = stroke,
       `Already takes a bloodthinner` = bloodthinner,
-      `Amount of filled in questionnaires` = filled_in,
-      `Amount of blank questionnaires` = blank_rows      ) %>%
+      `Amount of filled in questionnaires` = paste(filled_in,"/", filled_in_pct),
+      `Amount of blank questionnaires` = paste(blank_rows,"/", blank_in_pct)      ) %>%
     kable() %>%
     kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
@@ -700,11 +712,15 @@ rbind(` Total` = paste(nrow(profile),"patients"),
         font_size = 14)
 ```
 
-## Medical History of AF patients
-The medical history data from the patients that had FibriCheck based AFib measurements
+## Medical History of AFib patients
+
+- When users have performed their first measurement they are prompted with a screen that allows them to enter a questionnaire.
+- This questionnaire consists of a set of questions that relate to cardiovascular risk factors.
+- The questionnaire is optional and participants can skip these questions if they want.
+- The table below shows a high-level overview of the cardiovascular risk profie of patients that had possible atrial fibrillation based on the FibriCheck measurements
 
 ```{r}
-# AF PATIENTS
+# AFib PATIENTS
 medical_history_af<-
       profile[c("id","gender","birthday", "custom_fields.arrhythmias", "custom_fields.atrialFibrillationKnowledge", "custom_fields.arrhythmias", "custom_fields.heartFailure", "custom_fields.arteryDisease", "custom_fields.atrialFibrillation", "custom_fields.stroke", "custom_fields.hypertension", "custom_fields.diabetes", "custom_fields.bloodThinner")] %>%
       mutate(age = round(age_calc(birthday, units = "years"))) 
@@ -743,7 +759,8 @@ medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$user
       bloodthinner_af<- sum(data_af$custom_fields.bloodThinner, na.rm=TRUE)
       blank_rows_af <- sum(rowSums(is.na(data_af))>2)
       filled_in_af <-nrow(data_af)-blank_rows_af    
-      
+      filled_in_pct_af <- round(percent(filled_in_af/nrow(data_af)),3)
+      blank_in_pct_af <- round(percent(blank_rows_af/nrow(data_af)),3)
 
 rbind(` AF patients` = paste(nrow(list_user_id_AF),"of",nrow(profile),"patients"),
       ` History of Heart Failure` = HF_af,
@@ -753,8 +770,8 @@ rbind(` AF patients` = paste(nrow(list_user_id_AF),"of",nrow(profile),"patients"
       ` History of hypertension` = hypertension_af,
       ` History of Stroke` = stroke_af,
       `Already takes a bloodthinner` = bloodthinner_af,
-      `Amount of filled in questionnaires` = filled_in_af,
-      `Amount of blank questionnaires` = blank_rows_af
+       `Amount of filled in questionnaires` = paste(filled_in_af,"/", filled_in_pct_af),
+      `Amount of blank questionnaires` = paste(blank_rows_af,"/", blank_in_pct_af) 
       ) %>%
     kable() %>%
     kable_styling(
@@ -764,7 +781,8 @@ rbind(` AF patients` = paste(nrow(list_user_id_AF),"of",nrow(profile),"patients"
 ```
 
 ## Prescription activation information
-Oerview in time when patients activated their prescription.
+
+- The following data provides insight in the enrollment details of the population. This is relevant information to identify the peak moments when patients activated their prescription. 
 
 <div style="float: left; width: 70%;">
 
@@ -799,7 +817,7 @@ peck_hour <-
     arrange(-cnt) %>% head(1) %>% .[[1]]
     
 rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange(-cnt) %>% head(1) %>% .[[1]],origin='1970-01-01'))
-      ,`Peak activation - Time (UTC):` = peck_hour
+      ,`Peak activation - Time (UTC):` = paste(peck_hour," " ,"h")
       ) %>%
     kable(caption = "Table with activation metrics") %>%
     kable_styling(
@@ -812,7 +830,8 @@ rbind(`Peak activation - day:` = as.character(as.Date(plot_left_2_df %>% arrange
 
 ## Measurement intensity 
 
-Distribution over time in which weeks measurements were taken. 
+- The following data provides insight in the measurement behaviour of the population.
+- This is relevant information to identify peak moments when participants performed FibriCheck measurements.
 
 ```{r warning=FALSE, message=FALSE, echo=FALSE}
 plot_left_3_df <- 
@@ -832,13 +851,15 @@ plot_left_3_df <-
            ,wd=paste(min_date,max_date,sep='-'))
 
 ggplot(plot_left_3_df, aes(x=wd, y=cnt_, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("# of measurements")  + geom_text(aes(label = cnt_), size = 2, vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 90)) + scale_x_discrete(limits = plot_left_3_df$wd) + xlab("Week") + ylab("% of measurements")  + geom_text(aes(label = cnt_), size = 2, vjust = -0.5, colour = "#1e8d95")
 
 ```
 
 
 ## Measurement behavior
-The timepoints during the day on which measurements are taken.Note that the time is GMT. 
+
+- The following data provides insight in the measurement behaviour of the population.
+- This is relevant information to identify peak moments when participants performed FibriCheck measurements.
 
 <div style="float: left; width: 70%;">
 
@@ -864,8 +885,8 @@ plot_right_3_df <-
     arrange(min_hour) 
 
 ggplot(plot_right_3_df, aes(x=hour_, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") +
-  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + geom_text(aes(label = cnt), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + ylim(0,(max(plot_right_3_df$cnt)+20)) +
+  scale_x_discrete(limits=plot_right_3_df$hour_)+ xlab("Hour of the day (GMT timezone)") + ylab("# measurements") + geom_text(aes(label = cnt), vjust = -0.5, colour = "#1e8d95")
 ```
 </div>
 
@@ -880,12 +901,12 @@ max_measures_per_day <-
     summarise(cnt=n()) %>% 
     ungroup() %>% 
     summarise(max(cnt)) %>% .[[1]]
-rbind(`Peak measurements (UTC): ` = plot_right_3_df %>% 
+rbind(`Peak measurements (GMT): ` = plot_right_3_df %>% 
         arrange(-cnt) %>% 
         head(1) %>% 
         .[[1]]
       ,`Total number of measurements received:` = total_number_of_measurements
-      ,`Max number of tot. measurements / day:` = max_measures_per_day
+      ,`Max number of total measurements / day:` = max_measures_per_day
       ) %>%
     kable() %>%
     kable_styling(
@@ -898,15 +919,10 @@ rbind(`Peak measurements (UTC): ` = plot_right_3_df %>%
 
 ## User compliance and motivation
 
-<div style="float: right; width: 30%;">
+- Users are asked to take `r m_per_day` measurements per day and additional measurements when feeling symptoms.
+- Motivation: number of days in which `r m_per_day` measurements were performed per day for the duration of the entire prescribed period. 
+- Compliance: number of performed measurements per number of expected measurements over the prescription period (in the manuscript, it called 'adherence').
 
-- Users are asked to take `r m_per_day` measurements per day
-- Compliance is total performend measurements / total expected measurements
-- Motivation is % of days that the patient actually performed `r m_per_day` per day
-
-</div>
-
-<div style="float: left; width: 70%;">
 
 ```{r}
 MOTIVATION_DATA = NULL
@@ -982,7 +998,7 @@ motivation_plot_total<-
     summarise(cnt=n())
 
 tt1 <- ggplot(motivation_plot_total, aes(x=motivation, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=motivation_plot_total$motivation) + theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user motivation") + ylab("Amount of patients") + xlab(paste('Motivation of patients (% of days where',m_per_day,'measurements per day were performed)'))
+  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=motivation_plot_total$motivation) + theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = -0.5, colour = "#1e8d95") + ggtitle("Distribution of user motivation") + ylab("Number of patients") + xlab(paste('Motivation of patients (% of days where',m_per_day,'measurements per day were performed)')) + ylim(0, (max(motivation_plot_total$cnt)+10))
 
 #COMPLIANCE PLOT
 
@@ -1010,13 +1026,13 @@ compliance_plot_total<-
     summarise(cnt=n())
  
 tt2 <-ggplot(compliance_plot_total, aes(x=compliance, y=cnt, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = 1.5, colour = "white") + ggtitle("Distribution of user compliance") + ylab("Amount of patients") 
+  geom_bar(stat="identity", fill = "#1e8d95") +scale_x_discrete(limits=compliance_plot_total$compliance) +theme_minimal() + theme(legend.position = "none", axis.text.x = element_text(angle = 30)) + geom_text(aes(label = cnt), vjust = -0.5, colour = "#1e8d95") + ggtitle("Distribution of user compliance") + ylab("Number of patients") + ylim(0, (max(compliance_plot_total$cnt)+10))
 
 ggarrange(tt1, tt2, nrow = 2)
 
 
 ```
-</div>
+
 <!-- ## User compliance -->
 
 <!-- ```{r} -->
@@ -1051,9 +1067,9 @@ ggarrange(tt1, tt2, nrow = 2)
 
 <!-- ``` -->
 
-## Average amount of measurements 
+## Average number of measurements 
 
-Average amount of measurements per age category. 
+Average number of measurements per age category. 
 
 <div style="float: left; width: 50%;">
 
@@ -1124,7 +1140,8 @@ rbind(`Most compliant user (%):` = paste (as.character(max_compliance),"%", sep 
 ```
 </div>
 ## Diagnostics overview
-Overview metrics on diagnostic results. 
+
+This overview covers the findings based on the FibriCheck measurements.
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -1178,13 +1195,13 @@ hr_non_AF <-
 mean_HR_non_AF = round(mean(hr_non_AF$data.heartrate))
 
 
-rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrillation
+rbind(`Amount of people with Afib:` = people_with_atrial_fibrillation
       ,`Amount of atrial fibrillation measurements ` = total_af_measurements
-      ,`Amount of people with other cardiac arrhythmia's:` = people_with_other_cardiac_arrhythmias
+      ,`Amount of people with other cardiac arrhythmias:` = people_with_other_cardiac_arrhythmias
       ,`Average heart rate of non-AF people (bpm):` = mean_HR_non_AF
       ,`Average heart rate during AF (bpm):` = mean_HR_AF
       ,`Measurements with symptoms (%):` = scales::percent(Total_measurements_with_symptoms/as.numeric(total_number_of_measurements))
-      ,`AF-measurements with symptoms:` = scales::percent(1-(af_measurements_nosymptoms/total_af_measurements))
+      ,`Afib measurements with symptoms:` = scales::percent(1-(af_measurements_nosymptoms/total_af_measurements))
       ,`Most common symptom:` = most_common
       ) %>%
     kable() %>%
@@ -1196,6 +1213,7 @@ rbind(`Amount of people with Atrial Fibrillation:` = people_with_atrial_fibrilla
 ```
 
 ## Heart rhythm & Symptom findings
+
 Contingency table showing the heart rhythm and symptom correlation.
 
 <!-- <div style="float: left; width: 50%;"> -->
@@ -1243,8 +1261,6 @@ Contingency table showing the heart rhythm and symptom correlation.
 <!-- </div> -->
 
 ```{r}
-#testblok
-
 plot_rhythm_symptom_correlation <-
    measurments %>% 
     select(data.diagnosis.label.0, data.context.symptoms.0)  %>%
@@ -1254,11 +1270,12 @@ plot_rhythm_symptom_correlation <-
     arrange(Symptoms)
 plot_rhythm_symptom_correlation[is.na(plot_rhythm_symptom_correlation)] <- 0
 
-ggplot(plot_rhythm_symptom_correlation, aes(Rhythm, Symptoms)) + geom_point(aes(size = cnt), colour = "#1e8d95") +theme_bw() + scale_size_continuous(range=c(2,20)) + geom_text(aes(label = cnt),colour="white") + xlab("Rhythm Symptom correlation") + theme(legend.position = "none",  axis.text.x = element_text(angle = 90, vjust=0.7))
+ggplot(plot_rhythm_symptom_correlation, aes(Rhythm, Symptoms)) + geom_point(aes(size = cnt), colour = "#1e8d95") +theme_bw() + scale_size_continuous(range=c(2,19)) + geom_text(aes(label = cnt),colour="white") + xlab("Rhythm Symptom correlation") + theme(legend.position = "none",  axis.text.x = element_text(angle = 90, vjust=0.8))
 
 ```
 
-## Rhythm - Symptom table
+## Heart rhythm & Symptom findings
+
 
 ```{r}
 plot_rhythm_symptom_correlation2 <-
@@ -1280,11 +1297,11 @@ names(plot_rhythm_symptom_correlation2)[names(plot_rhythm_symptom_correlation2) 
 
 
 
-kable(plot_rhythm_symptom_correlation2) %>%
+kable(plot_rhythm_symptom_correlation2, align = 'c') %>%
   kable_styling(
     bootstrap_options = c("hover", "condensed", "responsive"),
     full_width = F,
-    font_size = 14)
+    font_size = 14,)
 
 ```
 
@@ -1308,7 +1325,7 @@ names(symptoms_table_sinus)[names(symptoms_table_sinus) == "data.context.symptom
 names(symptoms_table_sinus)[names(symptoms_table_sinus) == "freq"] <- "Frequency"
 names(symptoms_table_sinus)[names(symptoms_table_sinus) == "fraction"] <- "%"
 
-kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms") %>%
+kable(symptoms_table_sinus,caption = "Symptoms during sinus rhythms", align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1334,7 +1351,7 @@ names(symptoms_table_non_af)[names(symptoms_table_non_af) == "data.context.sympt
 names(symptoms_table_non_af)[names(symptoms_table_non_af) == "freq"] <- "Frequency"
 names(symptoms_table_non_af)[names(symptoms_table_non_af) == "fraction"] <- "%"
 
- kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms") %>%
+ kable(symptoms_table_non_af, caption = "Symptoms during non-AF rhythms", align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1358,7 +1375,7 @@ names(symptoms_table_af)[names(symptoms_table_af) == "data.context.symptoms.0"] 
 names(symptoms_table_af)[names(symptoms_table_af) == "freq"] <- "Frequency"
 names(symptoms_table_af)[names(symptoms_table_af) == "fraction"] <- "%"
 
-kable(symptoms_table_af,caption = "Symptoms during AF rhythms") %>%
+kable(symptoms_table_af,caption = "Symptoms during AF rhythms" , align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1398,11 +1415,11 @@ ggplot(plot_prescriptions_duration, aes(x=as.character(type), y=cnt)) +
 ```{r}
 
 names(plot_prescriptions_duration)[names(plot_prescriptions_duration) == "cnt"] <- "Amount"
-names(plot_prescriptions_duration)[names(plot_prescriptions_duration) == "type"] <- " duration"
+names(plot_prescriptions_duration)[names(plot_prescriptions_duration) == "type"] <- " Duration"
 
 
 
-kable(plot_prescriptions_duration) %>%
+kable(plot_prescriptions_duration, align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1531,8 +1548,10 @@ kable(plot_prescriptions_duration) %>%
 
 
 ## Signal Quality Analysis
-Recorded insufficient signal quality per age category. The average FibriCheck benchmark is around ±8%. 
 
+- When people are using FibriCheck there is an important element related to the usability of the application.
+- The measurements conducted with the smartphone are sensitive to possible sources of noise.
+- If this occurs the signals cannot be analysed for diagnostic purposes. On average, the insufficient quality range on a population is around 8%
 ```{r}
 measurerement_profiles_1 <-
   meas_prof_file %>%
@@ -1568,13 +1587,18 @@ measurerement_profiles_fin <-
 
 
 ggplot(measurerement_profiles_fin, aes(x=age, y=mean_Q, fill="#1e8d95")) +
-  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("Average insufficient quality")  + geom_text(aes(label = mean_Q), vjust = 1.5, colour = "white")
+  geom_bar(stat="identity", fill = "#1e8d95")+theme_minimal() + theme(legend.position = "none") + xlab("Age groups") + ylab("Average % insufficient quality recordings")  + ylim(0, (max(measurerement_profiles_fin$mean_Q)+5)) + geom_text(aes(label = round(mean_Q,1)), vjust = -0.5, colour = "#1e8d95")
 
 ```
 
 
 
 ## Measurement attempts
+
+- The measurement attempts reflect how many times a measurement was restarted by the user before it was successful.
+A possible reason for insufficient quality could be related to the contextual information.
+- The table on the right illustrates the relation between the total amount of insufficient signal quality compared to the context activity the users indicated when the measurement was conducted
+
 <div style="float: left; width: 50%;">
 
 ```{r, message=FALSE, echo=FALSE, warning=FALSE}
@@ -1589,7 +1613,7 @@ names(meas_attempt_measurement)[names(meas_attempt_measurement) == "cnt__"] <- "
 meas_attempt_measurement_subset <- meas_attempt_measurement[ c("Meas. attempts", "Percentage (%)")]
 
 
-kable(meas_attempt_measurement_subset) %>%
+kable(meas_attempt_measurement_subset, align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
@@ -1612,7 +1636,7 @@ names(percent_quality_activity)[names(percent_quality_activity) == "data.context
 names(percent_quality_activity)[names(percent_quality_activity) == "quality_to_low"] <- "Insufficient quality distribution (%)" 
 
   
-kable(percent_quality_activity) %>%
+kable(percent_quality_activity, align = 'c') %>%
       kable_styling(
         bootstrap_options = c("hover", "condensed", "responsive"),
         full_width = F,
