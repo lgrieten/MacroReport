@@ -1659,7 +1659,8 @@ kable(percent_quality_activity, align = 'c') %>%
 ## Individual plots
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, results = "asis"}
-for(i in 1:length(UserID))
+UserID_rand <- sample(1:length(UserID), 25, replace=T)
+for(i in 1:length(UserID_rand))
 {
 df_window = subset(measurments,userIds.0 == UserID[i])
 df_window = select(df_window, id, data.measurement_timestamp, data.heartrate,data.indicator,data.context.symptoms.0, data.context.symptoms.sym)
