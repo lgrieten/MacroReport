@@ -1,7 +1,7 @@
 ---
 title: "Your experience with FibriCheck"
 author: "Fibricheck"
-date: "25/12/2021"
+date: "1/2/2022"
 #output:  html_document
 output:
    ioslides_presentation:
@@ -142,7 +142,9 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Hannover")
+    path <- file.path("/Volumes/GoogleDrive-106458723681419210352/Shared drives/2020_TeleCheck-AF /Exports")
+
+
     #seperator for the CSV files, this can be ";" or "," 
     ssep = ";"
     #users_file <- file.path(path,"users.csv")
@@ -158,9 +160,9 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
     prescriptions <- read.csv(prescriptions_file, sep=ssep)
 
 #import source files
-m_per_day <- 4
+m_per_day <- 2
 duration <- 30
-Today <- as.Date("2021-12-07")
+Today <- Sys.Date()
 
 #inner join files
 meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
@@ -171,12 +173,18 @@ UserID <- unique(profile$id)
 
 ```{r cleanup users that are not eligible, echo=FALSE}
 #DELETE USERS FROM THE FRAME?
-delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846","580747d1b2148f3b28ad7586")
+delete_users<- c("5ef45ff846e0fb0007fde259","5bf40e5fcff47e0008eb42ae","58074800b2148f3b28ad7590", "5eb1457c4cedfd0006d7a28f", "5db06b8bd6018000069f77ee", "5dc02e7fd6018000069f7be6", "5d39d099c9e77c0006b25ce5","5d808a40c9e77c00089a7846","580747d1b2148f3b28ad7586","5d808a40c9e77c00089a7846","58074800b2148f3b28ad7590","5b3656b9cff47e0006ce3b27")
 #user_data = filter(user_data, !(id %in% delete_users))
 profile = filter(profile, !(id %in% delete_users))
 measurments = filter(measurments, !(userIds.0 %in% delete_users))
 prescriptions = filter(prescriptions, !(user_id %in% delete_users))
 Users_ID <- profile$id
+
+#inner join files
+meas_prof_file <- inner_join(measurments,profile, by = c('userIds.0'='id'))
+
+#Unique USER ID'S
+UserID <- unique(profile$id)
 ```
 
 ```{r load prescriptions dataset, eval = FALSE, echo=FALSE, message=FALSE}
@@ -512,7 +520,7 @@ plot_country_total <-
   plot_country <- plot_country_total[ c("country", "Percentage")]
   
   ggplot(plot_country_total, aes(x="", y=freq, fill=country)) +
-  geom_bar(stat="identity", width=1, color="white") + scale_fill_brewer(palette="Greens") +
+  geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0) +  theme_void() 
   
 most_popular_country <- as.vector(plot_country_total%>% 
@@ -565,7 +573,7 @@ plot_right_2_df <-
 
 
   ggplot(plot_right_2_df, aes(x="", y=cnt__, fill=device)) +
-  geom_bar(stat="identity", width=1, color="white") + scale_fill_brewer(palette="Greens") +
+  geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0) +  theme_void() 
 
 
@@ -934,13 +942,14 @@ for(i in 1:length(UserID))
   
   #DF windown alculation for prescription durations
   df_prescription = subset(prescriptions,user_id == UserID[i])
+    df_prescription = subset(df_prescription,status == "ACTIVATED")
   if(nrow(df_prescription) == 0) {next}
   
   #df_prescription$dur = df_prescription$duration/1000
   #df_prescription$activated_timestamp2 = as.Date(as.POSIXct((df_prescription$update_timestamp/1000),origin = "1970-01-01 00:00:00:000"))
   
-  df_prescription$activated_timestamp2 = as_datetime((df_prescription$update_timestamp/1000)) 
-  df_prescription$end_date = df_prescription$activated_timestamp2 + df_prescription$dur
+  df_prescription$activated_timestamp2 = as.Date(as_datetime((df_prescription$update_timestamp/1000))) 
+  df_prescription$end_date = as.Date(df_prescription$activated_timestamp2) + df_prescription$dur
   df_prescription$today = as_datetime(Today)
   total_prescription_days = sum(df_prescription$dur)
   Total_days_in_last_block = as.numeric(as_datetime(Today)-max(df_prescription$activated_timestamp2))
@@ -953,7 +962,9 @@ for(i in 1:length(UserID))
     } else {
       actual_prescription_days = total_prescription_days
     }
-  df_window$data.measurement_timestamp <- as_datetime((df_window$data.measurement_timestamp/1000))   
+  df_window$data.measurement_timestamp <- as.Date(as_datetime((df_window$data.measurement_timestamp/1000)))
+  df_window = subset(df_window,data.measurement_timestamp >= min(df_prescription$activated_timestamp2) & data.measurement_timestamp <= max(df_prescription$end_date))
+
   total_measurements = nrow(df_window)
   first_measurement = min(df_window$data.measurement_timestamp)
   last_measurement = max(df_window$data.measurement_timestamp)
