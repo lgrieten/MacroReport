@@ -1,14 +1,13 @@
 ---
-title: "Your experience with FibriCheck"
+title: "FibriCheck Overview Tergooi"
 author: "Fibricheck"
-date: "1/2/2022"
-#output:  html_document
+date: "10/03/2022"
 output:
-   ioslides_presentation:
-    widescreen: true
+  ioslides_presentation:
+    widescreen: yes
     logo: FibriCheck.png
     css: MacroReport.css
-#runtime: shiny
+  beamer_presentation: default
 ---
 
 
@@ -142,7 +141,7 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 
 ```{r input variables, echo=FALSE}
 #configure input variables
-    path <- file.path("/Volumes/GoogleDrive-106458723681419210352/Shared drives/2020_TeleCheck-AF /Exports")
+    path <- file.path("/Volumes/GoogleDrive/Shared drives/9. Clinical/9.6 Data reporting/Tergooi/Overview_20220309")
 
 
     #seperator for the CSV files, this can be ";" or "," 
@@ -161,7 +160,7 @@ get_sankey_plot <- function(df, min_num_users, max_num_steps, width, height, sav
 
 #import source files
 m_per_day <- 2
-duration <- 30
+duration <- 7
 Today <- Sys.Date()
 
 #inner join files
@@ -663,8 +662,8 @@ medical_history<-
       mutate(age = round(age_calc(birthday, units = "years"))) 
 
       data <- as.matrix(medical_history)
-      data[which(data == "false")] <- "0"
-      data[which(data == "true")] <- "1"
+      data[which(data == regex("false", ignore_case = TRUE))] <- "0"
+      data[which(data == regex("true", ignore_case = TRUE))] <- "1"
       data <-as.data.frame(data)
       
       #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
@@ -736,8 +735,8 @@ medical_history_af<-
 medical_history_af_2 <- filter(medical_history_af, (id %in% list_user_id_AF$userIds.0))
 
       data_af <- as.matrix(medical_history_af_2)
-      data_af[which(data_af == "false")] <- "0"
-      data_af[which(data_af == "true")] <- "1"
+      data_af[which(data_af == regex("false", ignore_case = TRUE))] <- "0"
+      data_af[which(data_af == regex("true", ignore_case = TRUE))] <- "1"
       data_af <-as.data.frame(data_af)
       
       #data$custom_fields.arrhythmias <-as.numeric(data$custom_fields.arrhythmias)
@@ -952,7 +951,7 @@ for(i in 1:length(UserID))
   df_prescription$end_date = as.Date(df_prescription$activated_timestamp2) + df_prescription$dur
   df_prescription$today = as_datetime(Today)
   total_prescription_days = sum(df_prescription$dur)
-  Total_days_in_last_block = as.numeric(as_datetime(Today)-max(df_prescription$activated_timestamp2))
+  Total_days_in_last_block = as.numeric(as.Date(Today)-max(df_prescription$activated_timestamp2))
   Total_days_last_block = as.numeric(max(df_prescription$end_date)-max(df_prescription$activated_timestamp2))
   
   actual_prescription_days <- 
